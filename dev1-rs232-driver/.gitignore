@@ -1,0 +1,6 @@
+# Ignore assignement explanations
+*.doc
+*.pdf
+
+# Ignore VMs
+VM/
