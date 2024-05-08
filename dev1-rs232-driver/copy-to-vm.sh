@@ -17,7 +17,11 @@ elif [[ $VM_NUM == 2 ]]; then
     PORT_NUM=2223
 fi
 
-scp -P $PORT_NUM chat/chat.c ift320@localhost:/home/ift320/rs232_tut-0.2/chat/chat.c 
-scp -P $PORT_NUM driver/cbuffer.c ift320@localhost:/home/ift320/rs232_tut-0.2/driver/cbuffer.c
-scp -P $PORT_NUM driver/cbuffer.h ift320@localhost:/home/ift320/rs232_tut-0.2/driver/cbuffer.h 
-scp -P $PORT_NUM driver/rs232_tp.c ift320@localhost:/home/ift320/rs232_tut-0.2/driver/rs232_tp.c 
+SCRIPT_DIR=$(cd $(dirname $0) && pwd)
+CHAT_DIR=$SCRIPT_DIR/rs232_tut-0.2/chat
+DRIVER_DIR=$SCRIPT_DIR/rs232_tut-0.2/driver
+
+scp -P $PORT_NUM $CHAT_DIR/chat.c ift320@localhost:/home/ift320/rs232_tut-0.2/chat/chat.c 
+scp -P $PORT_NUM $DRIVER_DIR/cbuffer.c ift320@localhost:/home/ift320/rs232_tut-0.2/driver/cbuffer.c
+scp -P $PORT_NUM $DRIVER_DIR/cbuffer.h ift320@localhost:/home/ift320/rs232_tut-0.2/driver/cbuffer.h 
+scp -P $PORT_NUM $DRIVER_DIR/rs232_tp.c ift320@localhost:/home/ift320/rs232_tut-0.2/driver/rs232_tp.c 
