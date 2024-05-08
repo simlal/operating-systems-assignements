@@ -32,6 +32,12 @@ ssh -p 2222 ift320@localhost
 ssh -p 2223 ift320@localhost
 ```
 
+7. To transfer files between the VMs, use the `scp` command.
+```bash
+scp -P 2222 file ift320@localhost:/path/to/destination
+```
+You can also use the transfer script provided in the `dev1-rs232-driver` folder.
+
 [Modified driver files](./dev1-rs232-driver/)
 
 
