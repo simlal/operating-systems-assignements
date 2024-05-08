@@ -1,0 +1,5 @@
+Ceci est un tuteur qui vous apprendra a programmer un pilote. Vous devez
+completer le pilote dans le repertoire driver et l'application test dans le
+repertoire chat.
+
+Tout les Makefiles contiennent une regle help, vous pouvez donc rouler la commande "make help" qui vous donnera l'aide sur l'utilisation du Makefile.

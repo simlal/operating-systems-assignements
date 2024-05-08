@@ -1,0 +1,1 @@
+cmd_/home/ift320/rs232_tut-0.2/driver/rs232_tut.o := ld -m elf_i386 -m elf_i386  -r -o /home/ift320/rs232_tut-0.2/driver/rs232_tut.o /home/ift320/rs232_tut-0.2/driver/rs232_module.o /home/ift320/rs232_tut-0.2/driver/rs232_tp.o /home/ift320/rs232_tut-0.2/driver/cbuffer.o

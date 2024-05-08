@@ -5,3 +5,6 @@
 
 # Ignore VMs
 VM/
+
+# env
+.vscode
