@@ -3,6 +3,7 @@
 pkgs.mkShell {
     buildInputs = [
         pkgs.qemu
+        pkgs.sshpass
     ];
 
     shellHook = ''
@@ -27,6 +28,8 @@ pkgs.mkShell {
         echo -e "\nTo transfer files use 'scp' command:"
         echo "scp -P 2222 file.txt ift320@localhost:/home/ift320"
         
+        echo -e "sshpass also avail to automate password input"
+
         cd ../
         echo "\nNow inside Nix shell with environment ready!"
     '';
