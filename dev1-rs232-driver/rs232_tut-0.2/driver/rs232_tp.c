@@ -66,36 +66,41 @@ int rs232_tut_open (struct inode *inode, struct file *file)
 
         // Setting UART
         INFO("Initializing UART...\n");
+        
+        INFO("Initial read on RBR to clear garbage data.\n");
+        inb( RS232_RBR(base_port) );    // Clear garbage data
+        
         // Define communication speed
         speed_dll = RS232_DLL_9K;
         speed_dlm = RS232_DLM_9K;
+        
+        outb(RS232_CMD_SPEED, RS232_LCR(base_port));
         outb(speed_dll, RS232_DLL(base_port));
         outb(speed_dlm, RS232_DLM(base_port));
-
-        INFO("Initial read on RBR to clear garbage data.\n");
-        inb( RS232_RBR(base_port) );    // Clear garbage data
 
         // LCR: 8bits-size, 1-stopbit, no-parity, no-break, normal-addressing
         INFO("Configuring LCR with: 8bits-size, 1-stopbit, no-parity, no-break, normal-addressing.\n");
         outb(RS232_CFG_LINE, RS232_LCR(base_port));
+        
+        // IER: Enable interrupts
+        INFO("Enabling interrupts on serial port.\n");
+        outb(RS232_INT_ON, RS232_IER(base_port));
+        
+        // FCR: Enabled/disable buffers
+        u8 fcr_buffer_config;
+        fcr_buffer_config = RS232_CFG_NOBUFFER;
+        INFO("FCR WITH FIFO: %s\n", fcr_buffer_config == RS232_CFG_BUFFER ? "true" : "false");
+        outb(fcr_buffer_config, RS232_FCR(base_port));
 
         // MCR: Allow interrupts from IER
         INFO("Allowing interrupts from IER.\n");
         outb(RS232_HAND_SHAKE, RS232_MCR(base_port));
-
-        // FCR: Enabled/disable buffers
-        int fcr_buffer_config = RS232_CFG_NOBUFFER;
-        INFO("FCR WITH FIFO: %s\n", fcr_buffer_config == RS232_CFG_BUFFER ? "true" : "false");
-        outb(fcr_buffer_config, RS232_FCR(base_port));
-
-        // IER: Enable interrupts
-        INFO("Enabling interrupts on serial port.\n");
-        outb(RS232_INT_ON, RS232_IER(base_port));
-
+        
         // Initial LSR read
-        unsigned char lsr_read = inb(RS232_LSR(base_port));
+        unsigned char lsr_read;
         char* lsr_msg;
-        if (lsr_read & RS232_READY_TO_SEND) {
+        lsr_read = inb(RS232_LSR(base_port));
+        if (lsr_resad & RS232_READY_TO_SEND) {
             lsr_msg = "Ready to send";
         } else if (lsr_read & RS232_DATA_AVAILABLE) {
             lsr_msg = "Data available to read";
@@ -105,9 +110,8 @@ int rs232_tut_open (struct inode *inode, struct file *file)
         INFO("LSR read value: 0x%x (%s)\n", lsr_read, lsr_msg);
 
         // Initial MSR read
-        unsigned char msr_read = inb(RS232_MSR(base_port));
-        INFO("MSR read value: 0x%x\n", msr_read);
-
+        unsigned char msr_read; 
+        msr_read = inb(RS232_MSR(base_port));        INFO("MSR read value: 0x%x\n", msr_read);
 
         INFO("UART initialized.\n");
     }        
