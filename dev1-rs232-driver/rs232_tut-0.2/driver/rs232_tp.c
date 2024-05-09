@@ -72,25 +72,42 @@ int rs232_tut_open (struct inode *inode, struct file *file)
         outb(speed_dll, RS232_DLL(base_port));
         outb(speed_dlm, RS232_DLM(base_port));
 
+        INFO("Initial read on RBR to clear garbage data.\n");
         inb( RS232_RBR(base_port) );    // Clear garbage data
 
-        // Configure LCR
-        // 8bits-size, 1-stopbit, no-parity (error check), no-break, normal-addressing
+        // LCR: 8bits-size, 1-stopbit, no-parity, no-break, normal-addressing
+        INFO("Configuring LCR with: 8bits-size, 1-stopbit, no-parity, no-break, normal-addressing.\n");
         outb(RS232_CFG_LINE, RS232_LCR(base_port));
 
-        // TODO SETUP DEFAULT MCR
+        // MCR: Allow interrupts from IER
+        INFO("Allowing interrupts from IER.\n");
+        outb(RS232_HAND_SHAKE, RS232_MCR(base_port));
 
-        //TODO SETUP FCR / 
+        // FCR: Enabled/disable buffers
+        int fcr_buffer_config = RS232_CFG_NOBUFFER;
+        INFO("FCR WITH FIFO: %s\n", fcr_buffer_config == RS232_CFG_BUFFER ? "true" : "false");
+        outb(fcr_buffer_config, RS232_FCR(base_port));
 
-        //TODO ENABLE INTERRUPTS
+        // IER: Enable interrupts
+        INFO("Enabling interrupts on serial port.\n");
+        outb(RS232_INT_ON, RS232_IER(base_port));
 
-        //? CHECK MSR 
+        // Initial LSR read
+        unsigned char lsr_read = inb(RS232_LSR(base_port));
+        char* lsr_msg;
+        if (lsr_read & RS232_READY_TO_SEND) {
+            lsr_msg = "Ready to send";
+        } else if (lsr_read & RS232_DATA_AVAILABLE) {
+            lsr_msg = "Data available to read";
+        } else {
+            lsr_msg = "No data available";
+        }
+        INFO("LSR read value: 0x%x (%s)\n", lsr_read, lsr_msg);
 
-        //? CHECK LSR?
-        //outb(         ,      RS232_IER(base_port) );
-        //outb(         ,  RS232_FCR(base_port) );
-        //outb(         ,  RS232_MCR(base_port) );
-        // etc.
+        // Initial MSR read
+        unsigned char msr_read = inb(RS232_MSR(base_port));
+        INFO("MSR read value: 0x%x\n", msr_read);
+
 
         INFO("UART initialized.\n");
     }        
@@ -215,14 +232,18 @@ ssize_t rs232_tut_write (struct file *file, const char __user *userbuffer, size_
  */
 irqreturn_t rs232_tut_isr (int irq, void *dev_id, struct pt_regs *state)
 {
+    INFO("TEST ISR\n");
     u8 tmp_iir;
 
     if (system_failed) return IRQ_HANDLED;
 
     isr_called++;
+    INFO("ISR called %i times.\n", isr_called);
+    // Execute until no more pending interrupt
     while( (( RS232_INT_PENDING & 
               (tmp_iir = inb( RS232_IIR(base_port) ))) == 0)) 
     {
+        INFO("Handling pending interrupt...\n");
         last_iir = tmp_iir;
         switch ( RS232_IIR_MASK & tmp_iir ) {
             case RS232_DATA_AVAIL:
