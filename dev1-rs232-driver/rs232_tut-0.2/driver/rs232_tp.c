@@ -58,26 +58,35 @@ int rs232_tut_open (struct inode *inode, struct file *file)
     uart_initialized++;
     if (uart_initialized == 1) {
 
-        INFO("Inintializing buffers...\n");
+        INFO("Initializing buffers...\n");
         //IFT320 : Provoquez l'appel de votre routine d'initialisation de vos cbuffer
         //IFT320 : rs232_tut_dev.cbuf_in
         //IFT320 : rs232_tut_dev.cbuf_out 
 
 
-        INFO("Inintializing UART...\n");
-        // Need a param to configure this
+        // Setting UART
+        INFO("Initializing UART...\n");
+        // Define communication speed
         speed_dll = RS232_DLL_9K;
         speed_dlm = RS232_DLM_9K;
+        outb(speed_dll, RS232_DLL(base_port));
+        outb(speed_dlm, RS232_DLM(base_port));
 
-        // Setting UART
-        inb( RS232_RBR(base_port) );
-        //IFT320 : Compl�tez l'initialisation du UART. 
-        //IFT320 : Vous ne devez pas utiliser disable()/enanble().
-        //IFT320 : Vous ne devez pas g�rer le PIC.
-        //outb(         ,   RS232_LCR(base_port) );
-        //outb(speed_dll,         RS232_DLL(base_port) );
-        //outb(speed_dlm,         RS232_DLM(base_port) );
-        //outb(         ,    RS232_LCR(base_port) );
+        inb( RS232_RBR(base_port) );    // Clear garbage data
+
+        // Configure LCR
+        // 8bits-size, 1-stopbit, no-parity (error check), no-break, normal-addressing
+        outb(RS232_CFG_LINE, RS232_LCR(base_port));
+
+        // TODO SETUP DEFAULT MCR
+
+        //TODO SETUP FCR / 
+
+        //TODO ENABLE INTERRUPTS
+
+        //? CHECK MSR 
+
+        //? CHECK LSR?
         //outb(         ,      RS232_IER(base_port) );
         //outb(         ,  RS232_FCR(base_port) );
         //outb(         ,  RS232_MCR(base_port) );
