@@ -60,4 +60,4 @@ echo "Files copied successfully."
 # First ssh into win then scp into each vm
 echo "SSHing automatically into win machine  with sshpass."
 echo "Call manually 'copy_to_vm.cmd VM_NUM=$VM_NUM' batch script within win machine to copy files to VM."
-sshpass -v -p $WIN_ACCOUNT_PASSWORD ssh $WIN_USERNAME@$WIN_MACHINE_IP "
+sshpass -v -p $WIN_ACCOUNT_PASSWORD ssh $WIN_USERNAME@$WIN_MACHINE_IP
