@@ -1,4 +1,4 @@
-// HELLO FROM DECK
+// Test from deck
 #include <asm/io.h>
 #include <asm/uaccess.h>
 #include "rs232_tut.h"
@@ -68,7 +68,7 @@ int rs232_tut_open (struct inode *inode, struct file *file)
         // Setting UART
         INFO("Initializing UART...\n");
         
-        // INFO("Initial read on RBR to clear garbage data.\n");
+        INFO("Initial read on RBR to clear garbage data.\n");
         inb( RS232_RBR(base_port) );
         
         // Define communication speed
@@ -80,40 +80,40 @@ int rs232_tut_open (struct inode *inode, struct file *file)
         outb(speed_dlm, RS232_DLM(base_port));
 
         // LCR: 8bits-size, 1-stopbit, no-parity, no-break, normal-addressing
-        // INFO("Configuring LCR with: 8bits-size, 1-stopbit, no-parity, no-break, normal-addressing.\n");
+        INFO("Configuring LCR with: 8bits-size, 1-stopbit, no-parity, no-break, normal-addressing.\n");
         outb(RS232_CFG_LINE, RS232_LCR(base_port));
         
         // IER: Enable interrupts
-        // INFO("Enabling interrupts on serial port.\n");
+        INFO("Enabling interrupts on serial port.\n");
         outb(RS232_INT_ON, RS232_IER(base_port));
         
         // FCR: Enabled/disable buffers
-        // u8 fcr_buffer_config;
-        // fcr_buffer_config = RS232_CFG_NOBUFFER;
-        // INFO("FCR WITH FIFO: %s\n", fcr_buffer_config == RS232_CFG_BUFFER ? "true" : "false");
+        u8 fcr_buffer_config;
+        fcr_buffer_config = RS232_CFG_NOBUFFER;
+        INFO("FCR WITH FIFO: %s\n", fcr_buffer_config == RS232_CFG_BUFFER ? "true" : "false");
         outb(RS232_CFG_NOBUFFER, RS232_FCR(base_port));
 
         // MCR: Allow interrupts from IER
-        // INFO("Allowing interrupts from IER.\n");
+        INFO("Allowing interrupts from IER.\n");
         outb(RS232_HAND_SHAKE, RS232_MCR(base_port));
         
         // Initial LSR read
-        // unsigned char lsr_read;
-        // char* lsr_msg;
-        // lsr_read = inb(RS232_LSR(base_port));
-        // if (lsr_resad & RS232_READY_TO_SEND) {
-        //     lsr_msg = "Ready to send";
-        // } else if (lsr_read & RS232_DATA_AVAILABLE) {
-        //     lsr_msg = "Data available to read";
-        // } else {
-        //     lsr_msg = "No data available";
-        // }
-        // INFO("LSR read value: 0x%x (%s)\n", lsr_read, lsr_msg);
+        unsigned char lsr_read;
+        char* lsr_msg;
+        lsr_read = inb(RS232_LSR(base_port));
+        if (lsr_read & RS232_READY_TO_SEND) {
+            lsr_msg = "Ready to send";
+        } else if (lsr_read & RS232_DATA_AVAILABLE) {
+            lsr_msg = "Data available to read";
+        } else {
+            lsr_msg = "No data available";
+        }
+        INFO("LSR read value: 0x%x (%s)\n", lsr_read, lsr_msg);
 
-        // // Initial MSR read
-        // unsigned char msr_read; 
-        // msr_read = inb(RS232_MSR(base_port));        
-        // INFO("MSR read value: 0x%x\n", msr_read);
+        // Initial MSR read
+        unsigned char msr_read; 
+        msr_read = inb(RS232_MSR(base_port));        
+        INFO("MSR read value: 0x%x\n", msr_read);
 
         INFO("UART initialized.\n");
     }        
@@ -211,7 +211,9 @@ ssize_t rs232_tut_write (struct file *file, const char __user *userbuffer, size_
     //IFT320 : u8 byte;
     size_t  size = 0;
 
-    INFO("WRITE : �criture d'un maximum de %i octets.\n", maximum_size);
+    INFO("WRITE : Ecriture d'un maximum de %i octets.\n", maximum_size);
+
+    char test* = "a";
 
     //IFT320 :  Une t�che vous demande d'aller transmettre un certain nombre de lettre vers le UART (� travers la ISR).
     //IFT320 :  Attention, le param�tre 'userbuffer' est d�finit dans l'espace m�moire 'usager'. Pour obtenir une lettre,
@@ -223,7 +225,7 @@ ssize_t rs232_tut_write (struct file *file, const char __user *userbuffer, size_
 
 
 
-    INFO("WRITE : �criture effective de %i octets.\n", size);
+    INFO("WRITE : Ecriture effective de %i octets.\n", size);
     return size;
 }
 
@@ -238,13 +240,12 @@ ssize_t rs232_tut_write (struct file *file, const char __user *userbuffer, size_
  */
 irqreturn_t rs232_tut_isr (int irq, void *dev_id, struct pt_regs *state)
 {
-    INFO("TEST ISR\n");
     u8 tmp_iir;
 
     if (system_failed) return IRQ_HANDLED;
 
     isr_called++;
-    INFO("ISR called %i times.\n", isr_called);
+    INFO("ISR called %i times so far!\n", isr_called);
     // Execute until no more pending interrupt
     while( (( RS232_INT_PENDING & 
               (tmp_iir = inb( RS232_IIR(base_port) ))) == 0)) 
