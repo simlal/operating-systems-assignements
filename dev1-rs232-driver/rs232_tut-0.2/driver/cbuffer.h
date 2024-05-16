@@ -10,15 +10,26 @@
 
 //IFT320 :   'cbuffer'  signifie  <Caracter Buffer>
 
-//IFT320 : Complétez la définition ci-après d'une structure de données supportant les tampons circulaires (Ring buffer).
-//IFT320 : Pour votre laboratoire, le tampon circulaire doit être accessible par les fonctions d'un pilote s'exécutant
+//IFT320 : Complï¿½tez la dï¿½finition ci-aprï¿½s d'une structure de donnï¿½es supportant les tampons circulaires (Ring buffer).
+//IFT320 : Pour votre laboratoire, le tampon circulaire doit ï¿½tre accessible par les fonctions d'un pilote s'exï¿½cutant
 //                 en 'Kernel mode' ainsi que par le code d'une ISR.
-    struct cbuffer {
-        u8 *buf;
 
-    };
+/**
+ * Circular buffer for receiving/read and transmitting/write data.
+ * We have a ptr to the buffer, the index of the head and tail and the size
+*/
+struct cbuffer {
+    u8 *cbuff;
+    int head;
+    int tail;
+    int size;
+};
 
-//IFT320 : Indiquez la signature de toutes les fonctions d'accès au tampon circulaire
-//IFT320 : <Initialiser>,<Enfiler>, <Défiler>, <EstVide>, etc.
+// Initialise a circular buffer
+struct cbuffer * cbuffer_init(int size);
+
+
+//IFT320 : Indiquez la signature de toutes les fonctions d'accï¿½s au tampon circulaire
+//IFT320 : <Initialiser>,<Enfiler>, <Dï¿½filer>, <EstVide>, etc.
 
 #endif /* __CBUFFER_H */
