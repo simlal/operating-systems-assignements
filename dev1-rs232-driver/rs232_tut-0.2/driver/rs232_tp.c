@@ -209,12 +209,13 @@ ssize_t rs232_tut_read (struct file *file, char __user *userbuffer, size_t maxim
 ssize_t rs232_tut_write (struct file *file, const char __user *userbuffer, size_t maximum_size, loff_t *o)
 {
     //IFT320 : u8 byte;
-    size_t  size = 0;
-
+    size_t  size = 1;
     INFO("WRITE : Ecriture d'un maximum de %i octets.\n", maximum_size);
 
-    char test = 'a';
-    outb(test, RS232_THR(base_port));
+    // Sending the first byte from user space buffer
+    char to_send;
+    copy_from_user(&to_send, userbuffer, size);
+    outb(to_send, RS232_THR(base_port));
 
     //IFT320 :  Une t�che vous demande d'aller transmettre un certain nombre de lettre vers le UART (� travers la ISR).
     //IFT320 :  Attention, le param�tre 'userbuffer' est d�finit dans l'espace m�moire 'usager'. Pour obtenir une lettre,
@@ -223,7 +224,6 @@ ssize_t rs232_tut_write (struct file *file, const char __user *userbuffer, size_
     //IFT320 :  Pour signaler � Linux que vous ne souhaitez plus recevoir de temps CPU,
     //IFT320 :  faite un appel � 'wait_event_interruptible(wq,CONDITION);'. Le terme 'CONDITION' pourrait �tre 
     //IFT320 :  quelques chose comme '!cbuffer_isfull(rs232_tut_dev.cbuf_out)';
-
 
 
     INFO("WRITE : Ecriture effective de %i octets.\n", size);
@@ -256,9 +256,10 @@ irqreturn_t rs232_tut_isr (int irq, void *dev_id, struct pt_regs *state)
         switch ( RS232_IIR_MASK & tmp_iir ) {
             case RS232_DATA_AVAIL:
                 int_received++;
-                INFO("RBR is full. Ready to read\n");
-                char byte_received = inb(RS232_RBR(base_port));
-                INFO("Received byte: %c\n", byte_received);
+                INFO("RBR has data. Ready to read.\n");
+                char byte_received;
+                byte_received = inb(RS232_RBR(base_port));
+                INFO("Received: %c \n", byte_received);
                 //IFT320 :  Une ou plusieurs lettres sont disponibles pour lecture en provenance du UART
                 //IFT320 :  Pour acc�der � une lettre faite un appel � 'byte = inb( RS232_RBR(base_port) ));'
                 //IFT320 :  Pour signaler � Linux que du temps CPU peut �tre accord� aux routines read/write du pilote,
@@ -268,7 +269,9 @@ irqreturn_t rs232_tut_isr (int irq, void *dev_id, struct pt_regs *state)
                 break;
             case RS232_EMPTY_THR:
                 int_send++;
-                INFO("THR is empty. Ready to send\n");
+                
+                INFO("THR is empty. Sent %i times so far.\n", int_send);
+                
                 //IFT320 :  Une ou plusieurs cases sont disponibles pour �criture vers le UART
                 //IFT320 :  Pour acc�der � une lettre faite un appel � 'outb (byte, RS232_THR(base_port) );'
                 //IFT320 :  Pour signaler � Linux que du temps CPU peut �tre accord� aux routines read/write du pilote,
