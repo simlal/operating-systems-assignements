@@ -9,3 +9,6 @@ VM/
 # env
 .vscode
 .env
+
+# bin
+*.o
