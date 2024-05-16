@@ -7,7 +7,7 @@
 VM/
 
 # env
-.vscode
+*.vscode
 .env
 
 # bin
