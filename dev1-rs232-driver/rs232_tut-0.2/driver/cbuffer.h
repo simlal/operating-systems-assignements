@@ -19,14 +19,15 @@
  * We have a ptr to the buffer, the index of the head and tail and the size
 */
 struct cbuffer {
-    u8 *cbuff;
+    u8* cbuff;
     int head;
     int tail;
     int size;
 };
 
-// Initialise a circular buffer
-struct cbuffer * cbuffer_init(int size);
+struct cbuffer* cbuffer_init(int size);
+int cbuffer_enqueue(struct cbuffer* cb, u8 data);
+
 
 
 //IFT320 : Indiquez la signature de toutes les fonctions d'acc�s au tampon circulaire
