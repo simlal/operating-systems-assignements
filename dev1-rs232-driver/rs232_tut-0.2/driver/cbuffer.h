@@ -31,7 +31,8 @@ void cbuffer_info(struct cbuffer* cb);
 int cbuffer_enqueue(struct cbuffer* cb, u8 data);
 int cbuffer_dequeue(struct cbuffer* cb, u8* data);
 bool cbuffer_is_empty(struct cbuffer* cb);
-
+bool cbuffer_is_full(struct cbuffer* cb);
+void cbuffer_free(struct cbuffer* cb);
 
 
 //IFT320 : Indiquez la signature de toutes les fonctions d'acc�s au tampon circulaire

@@ -30,6 +30,11 @@ struct cbuffer* cbuffer_init(int size)
     cb->head = 0;
     cb->tail = 0;
 
+    // Fill with empty space
+    for (int i=0; i < cb->size; i++) {
+        cb->cbuff[i] = 0x20;
+    }
+
     return cb;
 }
 /**
@@ -38,20 +43,23 @@ struct cbuffer* cbuffer_init(int size)
 */
 void cbuffer_info(struct cbuffer* cb)
 {
-    printf("struct cbuffer info:\n");
+    printf("\n########--------cbuffer_info()--------########\n");
     printf("cb->size: %i\n", cb->size);
     printf("cb->head: %i\n", cb->head);
     printf("cb->tail: %i\n", cb->tail);
+    printf("cb is empty? %s\n", cbuffer_is_empty(cb) ? "true" : "false");
+    printf("cb is full? %s\n", cbuffer_is_full(cb) ? "true" : "false");
     
-    printf("\nCurrent content of buffer:\n");
+    printf("\nCurrent content:\n");
+    if (cb->cbuff == NULL) {    // avoid nullptr excepts
+        printf("NO CONTENT. cbuff ptr is NULL");
+        return;
+    }
+
     for (int i=0; i < cb->size; i++) {
-        cb->cbuff[i];
-        if (cb->cbuff[i] != NULL) {
-            printf("cb->cbuff[%i]: %c\n", i, cb->cbuff[i]);
-        } else {
-            printf("cb->cbuff[%i]: EMPTY\n", i);
-        }
+        printf("cb->cbuff[%i]: %c\n", i, cb->cbuff[i]);
     } 
+    printf("########--------END OF INFO--------########\n\n");
     return;
 }
 
@@ -63,17 +71,14 @@ void cbuffer_info(struct cbuffer* cb)
 */
 int cbuffer_enqueue(struct cbuffer* cb, u8 data)
 {
-    // cbuffer is full
-    int next = (cb->head + 1) % cb->size;
-    if (next == cb->tail) {
-        // printf("cb->head: %i\n", cb->head);
-        // printf("cb->tail: %i\n", cb->tail);
+    // Do not enqueue when cbuffer is full
+    if (cbuffer_is_full(cb)) {
         return 1;
     }
 
     // Add data and move the head
     cb->cbuff[cb->head] = data;
-    cb->head = next;
+    cb->head = (cb->head + 1) % cb->size;
     return 0;
 }
 
@@ -84,18 +89,48 @@ int cbuffer_enqueue(struct cbuffer* cb, u8 data)
 */
 int cbuffer_dequeue(struct cbuffer* cb, u8* data)
 {
-    // cbuffer is empty
-    if (cb->head == cb->tail) {
-        return;
+    // Do not dequeue when cbuff is empty
+    if (cbuffer_is_empty(cb)) {
+        return 1;
     }
 
-    // Remove data and move the tail
+    // Extract data and move the tail
     *data = cb->cbuff[cb->tail];
+    cb->cbuff[cb->tail] = 0xFF;    // REPLACE DATA FOR DEBUGGING
     cb->tail = (cb->tail + 1) % cb->size;
-
     return 0;
 }
 
+/**
+ * Buffer is empty head and tail at same position
+ * @param cb ptr to the cbuffer
+*/
+bool cbuffer_is_empty(struct cbuffer* cb)
+{
+    return cb->head == cb->tail;
+}
+
+/**
+ * Buffer is full when head is 1 index ahead of tail
+*/
+bool cbuffer_is_full(struct cbuffer* cb)
+{
+    int next_to_head;
+    next_to_head = (cb->head + 1) % cb->size;
+    return next_to_head == cb->tail;
+}
+
+/**
+ * Free the buff char array and cbuffer struct
+*/
+void cbuffer_free(struct cbuffer* cb)
+{
+    // Freeing cbuffer char array
+    free(cb->cbuff);
+    cb->cbuff = NULL;
+    // Free the cbuffer struct
+    free(cb);
+}
 
 //IFT320 : Codez le corps de toutes les fonctions d'acc�s au tampon circulaire.
 //IFT320 : Vous devriez avoir inscrit la signature de ces fonctions dans le fichier 'cbuffer.h'
