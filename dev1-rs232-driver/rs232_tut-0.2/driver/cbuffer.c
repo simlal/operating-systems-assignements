@@ -17,7 +17,7 @@
  * Initialize a circular buffer
  * @param size size of the buffer to initialize
 */
-struct cbuffer * cbuffer_init(int size)
+struct cbuffer* cbuffer_init(int size)
 {
     // Allocate memory for cbuffer struct
     struct cbuffer *cb = malloc(sizeof(struct cbuffer));
@@ -26,16 +26,38 @@ struct cbuffer * cbuffer_init(int size)
     cb->cbuff = malloc(size * sizeof(u8));
 
     // Initialize head, tail and size
+    cb->size = size;
     cb->head = 0;
     cb->tail = 0;
-    cb->size = size;
 
     return cb;
+}
+/**
+ * print cbuffer info for debugging
+ * @param cb ptr to cbuffer
+*/
+void cbuffer_info(struct cbuffer* cb)
+{
+    printf("struct cbuffer info:\n");
+    printf("cb->size: %i\n", cb->size);
+    printf("cb->head: %i\n", cb->head);
+    printf("cb->tail: %i\n", cb->tail);
+    
+    printf("\nCurrent content of buffer:\n");
+    for (int i=0; i < cb->size; i++) {
+        cb->cbuff[i];
+        if (cb->cbuff[i] != NULL) {
+            printf("cb->cbuff[%i]: %c\n", i, cb->cbuff[i]);
+        } else {
+            printf("cb->cbuff[%i]: EMPTY\n", i);
+        }
+    } 
+    return;
 }
 
 /**
  * Enqueue 1 byte to head of the buffer
- * @param cb pointer to the cbuffer
+ * @param cb ptr to the cbuffer
  * @param data new data to enqueue on the buffer
  * @returns 1 if buffer is full (no changes), 0 if data added.
 */
@@ -52,6 +74,25 @@ int cbuffer_enqueue(struct cbuffer* cb, u8 data)
     // Add data and move the head
     cb->cbuff[cb->head] = data;
     cb->head = next;
+    return 0;
+}
+
+/**
+ * Dequeue 1 byte from the tail of the buffer
+ * @param cb ptr to the cbuffer
+ * @param data ptr to data store
+*/
+int cbuffer_dequeue(struct cbuffer* cb, u8* data)
+{
+    // cbuffer is empty
+    if (cb->head == cb->tail) {
+        return;
+    }
+
+    // Remove data and move the tail
+    *data = cb->cbuff[cb->tail];
+    cb->tail = (cb->tail + 1) % cb->size;
+
     return 0;
 }
 

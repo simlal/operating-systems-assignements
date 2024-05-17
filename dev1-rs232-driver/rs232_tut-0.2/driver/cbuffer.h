@@ -5,6 +5,7 @@
 #else
 # define u8 unsigned char
 #include <stdlib.h>
+#include <stdbool.h>
 #endif
 
 
@@ -20,13 +21,16 @@
 */
 struct cbuffer {
     u8* cbuff;
+    int size;
     int head;
     int tail;
-    int size;
 };
 
 struct cbuffer* cbuffer_init(int size);
+void cbuffer_info(struct cbuffer* cb);
 int cbuffer_enqueue(struct cbuffer* cb, u8 data);
+int cbuffer_dequeue(struct cbuffer* cb, u8* data);
+bool cbuffer_is_empty(struct cbuffer* cb);
 
 
 
