@@ -67,8 +67,12 @@ int rs232_tut_open (struct inode *inode, struct file *file)
 
         INFO("Initializing buffers...\n");
         //IFT320 : Provoquez l'appel de votre routine d'initialisation de vos cbuffer
-        //IFT320 : rs232_tut_dev.cbuf_in
-        //IFT320 : rs232_tut_dev.cbuf_out 
+        rs232_tut_dev.cbuf_in = cbuffer_init(80);
+        rs232_tut_dev.cbuf_out = cbuffer_init(40);
+
+        cbuffer_info(rs232_tut_dev.cbuf_in);
+        cbuffer_info(rs232_tut_dev.cbuf_out);
+
 
 
         // Setting UART
@@ -151,9 +155,8 @@ int rs232_tut_release (struct inode *inode, struct file *file)
 
         INFO("Desallocating buffers.\n");
         //IFT320 : Provoquez l'appel de votre routine de de-initialisation (release) de votre cbuffer
-        //IFT320 : rs232_tut_dev.cbuf_in
-        //IFT320 : rs232_tut_dev.cbuf_out 
-
+        cbuffer_free(rs232_tut_dev.cbuf_in);
+        cbuffer_free(rs232_tut_dev.cbuf_out);
 
         status();
         INFO("System failed:    %d\n", system_failed);
