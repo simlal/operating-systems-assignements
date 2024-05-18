@@ -32,7 +32,8 @@ struct cbuffer* cbuffer_init(int size)
     cb->tail = 0;
 
     // Fill with empty space
-    for (int i=0; i < cb->size; i++) {
+    int i;
+    for (i=0; i < cb->size; i++) {
         cb->cbuff[i] = 0x20;
     }
 
@@ -65,7 +66,8 @@ void cbuffer_info(struct cbuffer* cb)
         return;
     }
 
-    for (int i=0; i < cb->size; i++) {
+    int i;
+    for (i=0; i < cb->size; i++) {
         printk("cb->cbuff[%i]: %c\n", i, cb->cbuff[i]);
     } 
     printk("########--------END OF INFO--------########\n\n");
