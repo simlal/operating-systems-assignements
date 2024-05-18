@@ -161,7 +161,7 @@ int cbuffer_current_size(struct cbuffer* cb)
 int cbuffer_space_left(struct cbuffer* cb)
 {
     if (cbuffer_is_empty(cb)) {
-        return cb->size;
+        return cb->size - 1;
     } else if (cbuffer_is_full(cb)) {
         return 0;
     } else {
