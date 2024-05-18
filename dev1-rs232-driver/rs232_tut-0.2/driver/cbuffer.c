@@ -3,6 +3,7 @@
 #else
 # define kmalloc(a,b) malloc(a)
 # define kfree(a) free(a)
+# define printk printf
 # define spin_lock(l)
 # define spin_unlock(l)
 # define spin_lock_irqsave(l, f)
@@ -20,7 +21,7 @@
 struct cbuffer* cbuffer_init(int size)
 {
     // Allocate memory for cbuffer struct
-    struct cbuffer *cb = malloc(sizeof(struct cbuffer));
+    struct cbuffer *cb = kmalloc(sizeof(struct cbuffer), GFP_KERNEL);
 
     // Allocate mem for the cbuff itself
     cb->cbuff = malloc(size * sizeof(u8));
@@ -136,10 +137,10 @@ bool cbuffer_is_full(struct cbuffer* cb)
 void cbuffer_free(struct cbuffer* cb)
 {
     // Freeing cbuffer char array
-    free(cb->cbuff);
+    kfree(cb->cbuff);
     cb->cbuff = NULL;
     // Free the cbuffer struct
-    free(cb);
+    kfree(cb);
 }
 
 /**
@@ -165,7 +166,3 @@ int cbuffer_space_left(struct cbuffer* cb)
         return cb->size - cbuffer_current_size(cb) - 1;
     }
 }
-
-//IFT320 : Codez le corps de toutes les fonctions d'acc�s au tampon circulaire.
-//IFT320 : Vous devriez avoir inscrit la signature de ces fonctions dans le fichier 'cbuffer.h'
-//IFT320 : <Initialiser>,<Enfiler>, <D�filer>, <EstVide>, etc.
