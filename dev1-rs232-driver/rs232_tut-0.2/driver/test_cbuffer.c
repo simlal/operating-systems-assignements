@@ -3,6 +3,7 @@
 #include "cbuffer.h"
 
 int main() {
+    test_enqueue();
     test_dequeue();
 }
 
