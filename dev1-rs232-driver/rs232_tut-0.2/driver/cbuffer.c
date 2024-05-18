@@ -47,8 +47,16 @@ void cbuffer_info(struct cbuffer* cb)
     printf("cb->size: %i\n", cb->size);
     printf("cb->head: %i\n", cb->head);
     printf("cb->tail: %i\n", cb->tail);
-    printf("cb is empty? %s\n", cbuffer_is_empty(cb) ? "true" : "false");
-    printf("cb is full? %s\n", cbuffer_is_full(cb) ? "true" : "false");
+    printf("Current element count: %i\n", cbuffer_current_size(cb));
+    printf("# Space left: %i\n", cbuffer_space_left(cb));
+
+    // full/empty status
+    if (cbuffer_is_empty(cb)) {
+        printf("***cbuffer is empty***\n");
+    }
+    if (cbuffer_is_full(cb)) {
+        printf("***cbuffer is full***\n");
+    }
     
     printf("\nCurrent content:\n");
     if (cb->cbuff == NULL) {    // avoid nullptr excepts
@@ -112,6 +120,7 @@ bool cbuffer_is_empty(struct cbuffer* cb)
 
 /**
  * Buffer is full when head is 1 index ahead of tail
+ * @param cb ptr to the cbuffer
 */
 bool cbuffer_is_full(struct cbuffer* cb)
 {
@@ -122,6 +131,7 @@ bool cbuffer_is_full(struct cbuffer* cb)
 
 /**
  * Free the buff char array and cbuffer struct
+ * @param cb ptr to the cbuffer
 */
 void cbuffer_free(struct cbuffer* cb)
 {
@@ -130,6 +140,30 @@ void cbuffer_free(struct cbuffer* cb)
     cb->cbuff = NULL;
     // Free the cbuffer struct
     free(cb);
+}
+
+/**
+ * Return the current size of the cbuffer
+ * @param cb ptr to the cbuffer
+*/
+int cbuffer_current_size(struct cbuffer* cb)
+{
+    return (cb->head - cb->tail + cb->size) % cb->size;
+}
+
+/**
+ * space left before buffer is full
+ * @param cb ptr to the cbuffer
+*/
+int cbuffer_space_left(struct cbuffer* cb)
+{
+    if (cbuffer_is_empty(cb)) {
+        return cb->size;
+    } else if (cbuffer_is_full) {
+        return 0;
+    } else {
+        return cb->size - cbuffer_current_size(cb) - 1;
+    }
 }
 
 //IFT320 : Codez le corps de toutes les fonctions d'acc�s au tampon circulaire.

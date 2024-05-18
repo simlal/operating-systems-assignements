@@ -37,12 +37,11 @@ void test_dequeue() {
 
     // cbuff of 10 with tail at [1] and head at [3]
     struct cbuffer* cb = cbuffer_init(8);
-    cb->head = 3;
-    cb->tail = 1;
 
     cbuffer_info(cb);
 
     // Fill buffer with bogus
+    printf("Filling buffer with 'helloworld!'...\n");
     u8* data_in;
     data_in = malloc(20 * sizeof(u8));
     strcpy(data_in, "helloworld!");
