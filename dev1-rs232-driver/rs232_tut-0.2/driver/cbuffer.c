@@ -3,7 +3,7 @@
 #else
 # define kmalloc(a,b) malloc(a)
 # define kfree(a) free(a)
-# define printk printf
+# define printk printk
 # define spin_lock(l)
 # define spin_unlock(l)
 # define spin_lock_irqsave(l, f)
@@ -24,7 +24,7 @@ struct cbuffer* cbuffer_init(int size)
     struct cbuffer *cb = kmalloc(sizeof(struct cbuffer), GFP_KERNEL);
 
     // Allocate mem for the cbuff itself
-    cb->cbuff = malloc(size * sizeof(u8));
+    cb->cbuff = kmalloc(size * sizeof(u8), GFP_KERNEL);
 
     // Initialize head, tail and size
     cb->size = size;
@@ -44,31 +44,31 @@ struct cbuffer* cbuffer_init(int size)
 */
 void cbuffer_info(struct cbuffer* cb)
 {
-    printf("\n########--------cbuffer_info()--------########\n");
-    printf("cb->size: %i\n", cb->size);
-    printf("cb->head: %i\n", cb->head);
-    printf("cb->tail: %i\n", cb->tail);
-    printf("Current element count: %i\n", cbuffer_current_size(cb));
-    printf("# Space left: %i\n", cbuffer_space_left(cb));
+    printk("\n########--------cbuffer_info()--------########\n");
+    printk("cb->size: %i\n", cb->size);
+    printk("cb->head: %i\n", cb->head);
+    printk("cb->tail: %i\n", cb->tail);
+    printk("Current element count: %i\n", cbuffer_current_size(cb));
+    printk("# Space left: %i\n", cbuffer_space_left(cb));
 
     // full/empty status
     if (cbuffer_is_empty(cb)) {
-        printf("***cbuffer is empty***\n");
+        printk("***cbuffer is empty***\n");
     }
     if (cbuffer_is_full(cb)) {
-        printf("***cbuffer is full***\n");
+        printk("***cbuffer is full***\n");
     }
     
-    printf("\nCurrent content:\n");
+    printk("\nCurrent content:\n");
     if (cb->cbuff == NULL) {    // avoid nullptr excepts
-        printf("NO CONTENT. cbuff ptr is NULL");
+        printk("NO CONTENT. cbuff ptr is NULL");
         return;
     }
 
     for (int i=0; i < cb->size; i++) {
-        printf("cb->cbuff[%i]: %c\n", i, cb->cbuff[i]);
+        printk("cb->cbuff[%i]: %c\n", i, cb->cbuff[i]);
     } 
-    printf("########--------END OF INFO--------########\n\n");
+    printk("########--------END OF INFO--------########\n\n");
     return;
 }
 
@@ -114,7 +114,7 @@ int cbuffer_dequeue(struct cbuffer* cb, u8* data)
  * Buffer is empty head and tail at same position
  * @param cb ptr to the cbuffer
 */
-bool cbuffer_is_empty(struct cbuffer* cb)
+int cbuffer_is_empty(struct cbuffer* cb)
 {
     return cb->head == cb->tail;
 }
@@ -123,7 +123,7 @@ bool cbuffer_is_empty(struct cbuffer* cb)
  * Buffer is full when head is 1 index ahead of tail
  * @param cb ptr to the cbuffer
 */
-bool cbuffer_is_full(struct cbuffer* cb)
+int cbuffer_is_full(struct cbuffer* cb)
 {
     int next_to_head;
     next_to_head = (cb->head + 1) % cb->size;
@@ -160,7 +160,7 @@ int cbuffer_space_left(struct cbuffer* cb)
 {
     if (cbuffer_is_empty(cb)) {
         return cb->size;
-    } else if (cbuffer_is_full) {
+    } else if (cbuffer_is_full(cb)) {
         return 0;
     } else {
         return cb->size - cbuffer_current_size(cb) - 1;
