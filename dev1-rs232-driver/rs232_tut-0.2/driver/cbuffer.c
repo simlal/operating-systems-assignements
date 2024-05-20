@@ -1,9 +1,10 @@
 #ifdef __KERNEL__ 
 # include <linux/slab.h>
 #else
+# include <stdio.h>
 # define kmalloc(a,b) malloc(a)
 # define kfree(a) free(a)
-# define printk printk
+# define printk printf
 # define spin_lock(l)
 # define spin_unlock(l)
 # define spin_lock_irqsave(l, f)
@@ -32,7 +33,7 @@ struct cbuffer* cbuffer_init(int size)
     cb->tail = 0;
 
     // Fill with empty space
-    int i;
+    size_t i;
     for (i=0; i < cb->size; i++) {
         cb->cbuff[i] = 0x20;
     }
@@ -66,7 +67,7 @@ void cbuffer_info(struct cbuffer* cb)
         return;
     }
 
-    int i;
+    size_t i;
     for (i=0; i < cb->size; i++) {
         printk("cb->cbuff[%i]: %c\n", i, cb->cbuff[i]);
     } 
