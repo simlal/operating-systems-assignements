@@ -66,6 +66,15 @@ void test_dequeue() {
     cbuffer_info(cb);
     printf("last_data dequeued: %s\n", last_data);
 
+    n_dequeue = 5;
+    printf("Trying to dequeue past empty cbuff with %i dequeue calls...\n");
+    printf("dequeuing %i times...\n", n_dequeue);
+    for (int i=0; i < n_dequeue; i++) {
+        cbuffer_dequeue(cb, last_data);
+    }
+    cbuffer_info(cb);
+    printf("last_data dequeued: %s\n", last_data);
+
     // Free resources
     free(data_in);
     free(last_data);
