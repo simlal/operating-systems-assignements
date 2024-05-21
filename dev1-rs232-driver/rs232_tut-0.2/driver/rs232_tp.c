@@ -73,8 +73,6 @@ int rs232_tut_open (struct inode *inode, struct file *file)
         cbuffer_info(rs232_tut_dev.cbuf_in);
         cbuffer_info(rs232_tut_dev.cbuf_out);
 
-
-
         // Setting UART
         INFO("Initializing UART...\n");
         
@@ -139,7 +137,8 @@ int rs232_tut_open (struct inode *inode, struct file *file)
  * @param inode inode->i_cdev contient le pointeur vers votre cdev. Il peut etre
  * utilise pour trouver l'adresse de la structure du pilote.
  * @param file file->private_data peut etre utilise pour retrouver la structure
- * du pilote et decrementer sont usage.
+ * du pilote et decrementer sont 
+ * usage.
  *
  * @return Code d'erreur ou 0.
  */
@@ -197,7 +196,7 @@ ssize_t rs232_tut_read (struct file *file, char __user *userbuffer, size_t maxim
         copy_to_status = copy_to_user(userbuffer + read_offset, &received_character, 1);
 
         if (copy_to_status == 0) {
-            INFO("Sent %c to user\n", received_character);
+            // INFO("Sent %c to user\n", received_character);
             size = 1;
         } else {
             INFO("Error copying to user.\n");
@@ -237,20 +236,30 @@ ssize_t rs232_tut_read (struct file *file, char __user *userbuffer, size_t maxim
 ssize_t rs232_tut_write (struct file *file, const char __user *userbuffer, size_t maximum_size, loff_t *o)
 {
     //IFT320 : u8 byte;
-    size_t  size = 1;
     INFO("WRITE : Ecriture d'un maximum de %i octets.\n", maximum_size);
 
-    // Sending the first byte from user space buffer
-    char character_tosend;
-    int write_offset = 0;
+    // Copying userbuffer to driver cbuffer
+    char character_to_send;
     int copy_from_status;
-    copy_from_status = copy_from_user(&character_tosend, userbuffer + write_offset, size);
-    
-    if (copy_from_status == 0) {
-        outb(character_tosend, RS232_THR(base_port));
-    } else {
-        INFO("Error. Could not write to userbuffer + %i to THR!", write_offset);
+    size_t i;
+    for (i = 0; i < maximum_size; i++) {
+        // Per byte transfer from userspace to kernel space
+        copy_from_status = copy_from_user(&character_to_send, userbuffer + i, 1);
+        if (copy_from_status == 0) {
+            INFO("Wrote %c to cbuf_in\n", character_to_send);
+            // outb(character_to_send, RS232_THR(base_port));
+        } else {
+            INFO("Error. Could not write to userbuffer[%i] to THR!", i);
+            return -1;
+        }
+        cbuffer_enqueue(rs232_tut_dev.cbuf_out, character_to_send);
     }
+    cbuffer_info(rs232_tut_dev.cbuf_out);
+    
+    size_t size;
+    size = i + 1;
+    // copy_from_status = copy_from_user(??, userbuffer + i, 1);
+    
     
     //IFT320 :  Une t�che vous demande d'aller transmettre un certain nombre de lettre vers le UART (� travers la ISR).
     //IFT320 :  Attention, le param�tre 'userbuffer' est d�finit dans l'espace m�moire 'usager'. Pour obtenir une lettre,
