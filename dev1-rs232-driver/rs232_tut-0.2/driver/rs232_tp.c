@@ -23,7 +23,7 @@ char system_failed = 0;
 int uart_initialized = 0;
 char rs232_isempty_thr;
 
-/**
+/**b
  * Empty THR flag
 */
 int empty_thr_from_isr = 0;
@@ -196,19 +196,24 @@ ssize_t rs232_tut_read (struct file *file, char __user *userbuffer, size_t maxim
     int copy_to_status;
     for (size = 0; size < maximum_size; size++) {
         // Dequeuing cbuffer until empty or userspace full
+        if (cbuffer_is_empty(rs232_tut_dev.cbuf_in)) {
+            INFO("Cbuffer is empty. Nothing left to read.\n");
+            break;
+        }
         dequeue_status = cbuffer_dequeue(rs232_tut_dev.cbuf_in, &received_character);
+        INFO("IN READ LOOP, RECEIVED: %c\n", received_character);
         if (dequeue_status != 0) {
             INFO("dequeue operation failed inside READ kernel space.\n");
             break;
         }
         // Transfering from cbuff in kernel to userspace
-        copy_to_status = copy_to_user(userbuffer, &received_character, 1);
+        copy_to_status = copy_to_user(userbuffer + size, &received_character, 1);
         if (copy_to_status != 0) {
             INFO("Error copying to user.\n");
             break;
         }
     }
-    INFO("Cbuffer is empty. Nothing left to read.\n")
+    INFO("Cbuffer is empty. Nothing left to read.\n");
     return size;
 }
 
@@ -246,8 +251,22 @@ ssize_t rs232_tut_write (struct file *file, const char __user *userbuffer, size_
         // Wait for space in the buffer
         if (cbuffer_is_full(rs232_tut_dev.cbuf_out)) {
             INFO("cbuffer is full. Waiting for space to enqueue.\n");
+            // Force push first byte to THR based on isr/empty_thr flag to trigger interrupt
+            if (empty_thr_from_isr == 1) {
+                INFO("Empty THR flag is set. Forcing first byte to THR.\n");
+                empty_thr_from_isr = 0;
+                u8 character_to_send;
+                int dequeue_status;
+                dequeue_status = cbuffer_dequeue(rs232_tut_dev.cbuf_out, &character_to_send);
+                if (dequeue_status != 0) {
+                    INFO("Error. Could not force push first byte from cbuff to THR.\n");
+                    return -1;
+                }
+                outb(character_to_send, RS232_THR(base_port));
+            }
+            // Wait for space in the buffer
             wait_event_interruptible(wq, !cbuffer_is_full(rs232_tut_dev.cbuf_out));
-            INFO("Woken up! cbuffer has space for write.\n")
+            INFO("Woken up! cbuffer has space for write.\n");
         }
         // Enqueue current byte to cbuffer
         enqueue_status = cbuffer_enqueue(rs232_tut_dev.cbuf_out, char_to_enqueue);
@@ -261,15 +280,14 @@ ssize_t rs232_tut_write (struct file *file, const char __user *userbuffer, size_
     if (empty_thr_from_isr == 1) {
         u8 character_to_send;
         int dequeue_status;
-        int dequeue_status;
         dequeue_status = cbuffer_dequeue(rs232_tut_dev.cbuf_out, &character_to_send);
         if (dequeue_status != 0) {
             INFO("Error. Could not force push first byte from cbuff to THR.\n");
             return -1;
         }
-        outb(character_to_send, RS232_THR(base_port));
-        INFO("Force pushed first byte from cbuffer to THR!\n");
+        INFO("Force pushing first byte '%c' from cbuffer to THR...\n", character_to_send);
         empty_thr_from_isr = 0;
+        outb(character_to_send, RS232_THR(base_port));
     }
     INFO("WRITE : Ecriture effective de %i octets.\n", size);
     return size;
@@ -323,7 +341,7 @@ irqreturn_t rs232_tut_isr (int irq, void *dev_id, struct pt_regs *state)
                     dequeue_status = cbuffer_dequeue(rs232_tut_dev.cbuf_in, discarded_character);
                     enqueue_status = cbuffer_enqueue(rs232_tut_dev.cbuf_in, received_character);
                     if (dequeue_status != 0 || enqueue_status != 0) {
-                        INFO("Overwrite operation failed inside DATA_AVAIL interrupt.\n")
+                        INFO("Overwrite operation failed inside DATA_AVAIL interrupt.\n");
                     }
                     INFO("Overwritten old data '%c' with new data '%c'.\n", discarded_character, received_character);
                 }
