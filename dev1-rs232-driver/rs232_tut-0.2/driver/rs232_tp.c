@@ -349,10 +349,6 @@ irqreturn_t rs232_tut_isr (int irq, void *dev_id, struct pt_regs *state)
                 // Wake up all processes waiting for data to be read
                 INFO("Data available for read. Waking up interruptible!\n");
                 wake_up_interruptible(&wq);
-                //IFT320 :  Une ou plusieurs lettres sont disponibles pour lecture en provenance du UART
-                //IFT320 :  Pour acc�der � une lettre faite un appel � 'byte = inb( RS232_RBR(base_port) ));'
-                //IFT320 :  Pour signaler � Linux que du temps CPU peut �tre accord� aux routines read/write du pilote,
-                //IFT320 :  faite un appel � 'wake_up_interruptible(&wq);'
 
                 break;
             case RS232_EMPTY_THR:
@@ -378,13 +374,6 @@ irqreturn_t rs232_tut_isr (int irq, void *dev_id, struct pt_regs *state)
                 // Wake up all processes waiting for space to write
                 INFO("Space available for write. Waking up interruptible!\n");
                 wake_up_interruptible(&wq);
-
-                //IFT320 :  Une ou plusieurs cases sont disponibles pour �criture vers le UART
-                //IFT320 :  Pour acc�der � une lettre faite un appel � 'outb (byte, RS232_THR(base_port) );'
-                //IFT320 :  Pour signaler � Linux que du temps CPU peut �tre accord� aux routines read/write du pilote,
-                //IFT320 :  faite un appel � 'wake_up_interruptible(&wq);'
-
-
 
                 break;
             case RS232_ERROR:
