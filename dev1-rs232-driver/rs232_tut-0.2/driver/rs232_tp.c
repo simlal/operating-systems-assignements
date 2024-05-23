@@ -24,10 +24,9 @@ int uart_initialized = 0;
 char rs232_isempty_thr;
 
 /**
- * Reception state 
+ * Empty THR flag
 */
-// u8 received_character;
-// int character_received_flag = 0;
+int empty_thr_from_isr = 0;
 
 /**
  * File d'attente d'evenement.
@@ -181,57 +180,35 @@ int rs232_tut_release (struct inode *inode, struct file *file)
  */
 ssize_t rs232_tut_read (struct file *file, char __user *userbuffer, size_t maximum_size, loff_t *o)
 {   
-    //IFT320 : u8 byte;
-
-    wait_event_interruptible(wq, !cbuffer_is_empty(rs232_tut_dev.cbuf_in));
-    INFO("WOKEN UP TO READ!\n");
-    size_t  size = 0;
+    // Wait until buffer is not empty
+    if (cbuffer_is_empty(rs232_tut_dev.cbuf_in)) {
+        INFO("Cbuffer is empty. Waiting for data to be read...\n");
+        wait_event_interruptible(wq, !cbuffer_is_empty(rs232_tut_dev.cbuf_in));
+        INFO("Woken up! Cbuffer has data to be read.\n");
+    }
+    // Initial state of buffer before dequeuing
     INFO("READ : Lecture d'un maximum de %i octets.\n", maximum_size);
-    
-    // Getting data from cbuff with ISR wake-up with data available
+    cbuffer_info(rs232_tut_dev.cbuf_in);
+
+    size_t  size;
     u8 received_character;
     int dequeue_status;
-    dequeue_status = cbuffer_dequeue(rs232_tut_dev.cbuf_in, &received_character);
-    if (dequeue_status != 0) {
-        INFO("dequeue operation failed inside READ kernel space.\n");
-    }
-
-    // Transfering from cbuff in kernel to userspace
     int copy_to_status;
-    copy_to_status = copy_to_user(userbuffer, &received_character, 1);
-    if (copy_to_status != 0) {
-        INFO("Error copying to user.\n");
-        return 0;
+    for (size = 0; size < maximum_size; size++) {
+        // Dequeuing cbuffer until empty or userspace full
+        dequeue_status = cbuffer_dequeue(rs232_tut_dev.cbuf_in, &received_character);
+        if (dequeue_status != 0) {
+            INFO("dequeue operation failed inside READ kernel space.\n");
+            break;
+        }
+        // Transfering from cbuff in kernel to userspace
+        copy_to_status = copy_to_user(userbuffer, &received_character, 1);
+        if (copy_to_status != 0) {
+            INFO("Error copying to user.\n");
+            break;
+        }
     }
-    size++;
-
-    // if (character_received_flag == 1) {
-        
-    //     // Get the byte from RBR
-    //     u8 received_character;
-        
-
-    //     // Send it to the user
-    //     int read_offset = 0;
-
-    //     int copy_to_status;
-    //     copy_to_status = copy_to_user(userbuffer + read_offset, &received_character, 1);
-    //     if (copy_to_status != 0) {
-    //         INFO("Error copying to user.\n");
-    //     }
-        
-    //     character_received_flag--;
-    // }
-
-    //IFT320 :  Une t�che vous demande d'aller lire un certain nombre de lettre en provenance du UART (� travers la ISR).
-    //IFT320 :  Attention, le param�tre 'userbuffer' est d�finit dans l'espace m�moire 'usager'. Pour obtenir une lettre,
-    //IFT320 :  faites appel � 'copy_from_user(&byte, userbuffer + i, 1)'. Un code de retour vous indique si l'op�ration
-    //IFT320 :  fut bien r�ussie.
-    //IFT320 :  Pour signaler � Linux que vous ne souhaitez plus recevoir de temps CPU,
-    //IFT320 :  faite un appel � 'wait_event_interruptible(wq,CONDITION);'. Le terme 'CONDITION' pourrait �tre 
-    //IFT320 :  quelques chose comme '!cbuffer_isempty(rs232_tut_dev.cbuf_in)';
-
-    // INFO("READ : Lecture effective de %i octets.\n", size);
+    INFO("Cbuffer is empty. Nothing left to read.\n")
     return size;
 }
 
@@ -252,13 +229,10 @@ ssize_t rs232_tut_read (struct file *file, char __user *userbuffer, size_t maxim
 ssize_t rs232_tut_write (struct file *file, const char __user *userbuffer, size_t maximum_size, loff_t *o)
 {
     //IFT320 : u8 byte;
-    size_t size;
     INFO("WRITE : Ecriture d'un maximum de %i octets.\n", maximum_size);
 
-    // Write call from EMPTY_THR interrupt but empty buffer
-    
-
     // Copying userbuffer to driver cbuffer
+    size_t size;
     u8 char_to_enqueue;
     int copy_from_status;
     int enqueue_status;
@@ -267,23 +241,36 @@ ssize_t rs232_tut_write (struct file *file, const char __user *userbuffer, size_
         copy_from_status = copy_from_user(&char_to_enqueue, userbuffer + size, 1);
         if (copy_from_status != 0) {
             INFO("Error. Could not write to userbuffer[%i] to THR!\n", size);
-            return -1;
+            break;
+        }
+        // Wait for space in the buffer
+        if (cbuffer_is_full(rs232_tut_dev.cbuf_out)) {
+            INFO("cbuffer is full. Waiting for space to enqueue.\n");
+            wait_event_interruptible(wq, !cbuffer_is_full(rs232_tut_dev.cbuf_out));
+            INFO("Woken up! cbuffer has space for write.\n")
         }
         // Enqueue current byte to cbuffer
         enqueue_status = cbuffer_enqueue(rs232_tut_dev.cbuf_out, char_to_enqueue);
         if (enqueue_status != 0) {
             INFO("Error. Could not enqueue to cbuffer_out!\n");
+            break;
         }
     }
     cbuffer_info(rs232_tut_dev.cbuf_out);
-    //IFT320 :  Une t�che vous demande d'aller transmettre un certain nombre de lettre vers le UART (� travers la ISR).
-    //IFT320 :  Attention, le param�tre 'userbuffer' est d�finit dans l'espace m�moire 'usager'. Pour obtenir une lettre,
-    //IFT320 :  faites appel � 'copy_from_user(&byte, userbuffer + i, 1)'. Un code de retour vous indique si l'op�ration
-    //IFT320 :  fut bien r�ussie.
-    //IFT320 :  Pour signaler � Linux que vous ne souhaitez plus recevoir de temps CPU,
-    //IFT320 :  faite un appel � 'wait_event_interruptible(wq,CONDITION);'. Le terme 'CONDITION' pourrait �tre 
-    //IFT320 :  quelques chose comme '!cbuffer_isfull(rs232_tut_dev.cbuf_out)';
-
+    // Force push first byte to THR based on isr/empty_thr flag to trigger interrupt
+    if (empty_thr_from_isr == 1) {
+        u8 character_to_send;
+        int dequeue_status;
+        int dequeue_status;
+        dequeue_status = cbuffer_dequeue(rs232_tut_dev.cbuf_out, &character_to_send);
+        if (dequeue_status != 0) {
+            INFO("Error. Could not force push first byte from cbuff to THR.\n");
+            return -1;
+        }
+        outb(character_to_send, RS232_THR(base_port));
+        INFO("Force pushed first byte from cbuffer to THR!\n");
+        empty_thr_from_isr = 0;
+    }
     INFO("WRITE : Ecriture effective de %i octets.\n", size);
     return size;
 }
@@ -321,17 +308,28 @@ irqreturn_t rs232_tut_isr (int irq, void *dev_id, struct pt_regs *state)
                 u8 received_character;
                 int enqueue_status;
                 received_character = inb(RS232_RBR(base_port));
+
+                // cbuffer has place to store newly read data
                 if (!cbuffer_is_full(rs232_tut_dev.cbuf_in)) {
                     enqueue_status = cbuffer_enqueue(rs232_tut_dev.cbuf_in, received_character);
                     if (enqueue_status != 0) {
                         INFO("enqueue operation failed inside DATA_AVAIL interrupt.\n");
                     }
                 } else {
-                    INFO("cbuffer is full, cannot enqueue!\n");
+                    // Overwrite old data with newly received RBR on cbuffer
+                    INFO("cbuffer is full, overwriting old data\n");
+                    int dequeue_status;
+                    u8 discarded_character;
+                    dequeue_status = cbuffer_dequeue(rs232_tut_dev.cbuf_in, discarded_character);
+                    enqueue_status = cbuffer_enqueue(rs232_tut_dev.cbuf_in, received_character);
+                    if (dequeue_status != 0 || enqueue_status != 0) {
+                        INFO("Overwrite operation failed inside DATA_AVAIL interrupt.\n")
+                    }
+                    INFO("Overwritten old data '%c' with new data '%c'.\n", discarded_character, received_character);
                 }
 
                 // Wake up all processes waiting for data to be read
-                INFO("Received: %c and transfered to cbuff. Waking up interruptible!\n", received_character);
+                INFO("Data available for read. Waking up interruptible!\n");
                 wake_up_interruptible(&wq);
                 //IFT320 :  Une ou plusieurs lettres sont disponibles pour lecture en provenance du UART
                 //IFT320 :  Pour acc�der � une lettre faite un appel � 'byte = inb( RS232_RBR(base_port) ));'
@@ -340,8 +338,10 @@ irqreturn_t rs232_tut_isr (int irq, void *dev_id, struct pt_regs *state)
 
                 break;
             case RS232_EMPTY_THR:
+                // ISR called because THR is empty
+                INFO("THR is empty. Ready to write.\n");
                 int_send++;
-                // Sending data from cbuffer to THR
+                // Cbuffer is not empty, dequeue and send to THR
                 if (!cbuffer_is_empty(rs232_tut_dev.cbuf_out)) {
                     u8 character_to_send;
                     int dequeue_status;
@@ -352,8 +352,14 @@ irqreturn_t rs232_tut_isr (int irq, void *dev_id, struct pt_regs *state)
                     outb(character_to_send, RS232_THR(base_port));
                     INFO("Sent: %c from cbuffer to THR.\n", character_to_send);
                 } else {
-                    INFO("Empty THR interrupt, but cbuffer is empty. Cannot dequeue and write to THR!\n");
+                    // Flag to indicate that THR is empty and cbuffer is empty
+                    INFO("Empty THR interrupt, but cbuffer is empty. Cannot dequeue and write to THR.\n");
+                    INFO("Switching thr_empty_flag to true.\n");
+                    empty_thr_from_isr = 1;
                 }
+                // Wake up all processes waiting for space to write
+                INFO("Space available for write. Waking up interruptible!\n");
+                wake_up_interruptible(&wq);
 
                 //IFT320 :  Une ou plusieurs cases sont disponibles pour �criture vers le UART
                 //IFT320 :  Pour acc�der � une lettre faite un appel � 'outb (byte, RS232_THR(base_port) );'
