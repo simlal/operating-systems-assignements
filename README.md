@@ -1,7 +1,18 @@
 # Operating Systems Course Assignements
 Assignments for an operating systems class IFT-320 at UdeS
 
-## Assignment 1 - RS232 Driver
+## Assignements
+### Assignment 1 - RS232 Driver
+Overview of the assignment:
+- Write a cbuffer implementation for the RS232 driver.
+- Implement the RS232 driver over a chat application.
+
+### Assignment 2 - File System
+Overview of the assignment:
+TODO
+
+## !DEPRECATED SETUP!
+### Assignment 1 - RS232 Driver
 **Environment Setup:**
 1. Copy the Ubuntu VMs in the `dev1-rs232-driver` folder to your local machine.
 2. Add a localhost entry with adequate key exchange and host key algorithms to the `~/.ssh/config` file.
