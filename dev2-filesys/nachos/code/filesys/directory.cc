@@ -177,7 +177,9 @@ Directory::List()
 	printf("--Directory contents--\n\n");
 	for (int i = 0; i < tableSize; i++)
 	if (table[i].inUse)
-	    printf("%s\n", table[i].name);
+	    printf("sec_%d: %s\n", table[i].sector, table[i].name);
+    else
+	    DEBUG('g', "sec_%d: %s (inUse=%i)\n", table[i].sector, table[i].name, table[i].inUse);
 	printf("\n----- End of list ----\n\n");
 }
 
