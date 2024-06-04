@@ -16,8 +16,8 @@ MAIN_MACHOS_DECK=$SCRIPT_DIR/nachos
 FILESYS_DIR_DECK=$MAIN_MACHOS_DECK/code/filesys
 
 # Directories on WIN machine
-MAIN_NACHOS_WIN=/Users/simla/programming/ift320_dev2/nachos
-FILESYS_DIR_WIN=$MAIN_NACHOS_WIN/code/filesys
+MAIN_NACHOS_WIN=/Users/simla/programming/ift320_dev2/
+FILESYS_DIR_WIN=$MAIN_NACHOS_WIN/filesys
 
 # First copy from deck to win machine
 VM_PASSWORD='ubuntu'
@@ -32,6 +32,4 @@ echo "Files copied successfully."
 
 # Copy from win machine to the vm
 # First ssh into win then scp into each vm
-echo "SSHing automatically into win machine  with sshpass."
-echo "Call manually 'copy_to_vm.cmd batch script within win machine to copy files to VM."
-sshpass -v -p $WIN_ACCOUNT_PASSWORD ssh $WIN_USERNAME@$WIN_MACHINE_IP
+echo "Call manually './copy-to-vm.sh' from within Git Bash in the win machine."
