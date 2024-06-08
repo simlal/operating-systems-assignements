@@ -184,19 +184,18 @@ void FileSystem::TouchOpenedFiles(char * modif){
 
 //IFT320: Fonction de changement de repertoire. Doit etre implementee pour la partie A.
 bool FileSystem::ChangeDirectory(char* name){
-
-	//IFT320: Partie A
-	printf("!!ChangeDirectory non implemente!!\n");
-	ASSERT(FALSE);			
+    // Check if the directory exists
+    printf("dirFile len: %d\n", directoryFile->Length());
+    // Change the current directory
+    // Deal with return, true if ok, false if no permissions etc.
+    ASSERT(FALSE);			
 }
 
 
 //IFT320: Fonction de creation de repertoires. Doit etre implementee pour la partie A.
 bool FileSystem::CreateDirectory(char *name)
 {
-	//IFT320: Partie A
-	printf("!!CreateDirectory non implemente!!\n");
-	ASSERT(FALSE);	
+    return Create(name, NumDirEntries, TRUE);
 }
 
 //----------------------------------------------------------------------
@@ -226,9 +225,10 @@ bool FileSystem::CreateDirectory(char *name)
 //
 //	"name" -- name of file to be created
 //	"initialSize" -- size of file to be created
+// "isDirectory" -- true if the file is a directory
 //----------------------------------------------------------------------
-
-bool FileSystem::Create(char *name, int initialSize)
+//TODO TEST ISDIR
+bool FileSystem::Create(char *name, int initialSize, bool isDirectory)
 {
     Directory *directory;
     BitMap *freeMap;
@@ -236,25 +236,33 @@ bool FileSystem::Create(char *name, int initialSize)
     int sector;
     bool success;
 
-    DEBUG('f', "Creating file %s, size %d\n", name, initialSize);
+    DEBUG('f', "Creating file %s, size %d, isDirectory %d\n", name, initialSize, isDirectory);
 
     directory = new Directory(NumDirEntries);
 	directory->FetchFrom(directoryFile);
 
     if (directory->Find(name) != -1)
+    {
         success = FALSE; // file is already in directory
+    }
+    else if  (directory->FindDirectory(name) != -1)
+    {
+        success = FALSE;  // new directory is already in dir
+    }
     else
     {
+        printf("Creating file or directory %s\n", name);
         freeMap = new BitMap(NumSectors);
         freeMap->FetchFrom(freeMapFile);
         sector = freeMap->Find(); // find a sector to hold the file header
         if (sector == -1)
             success = FALSE; // no free block for file header
-        else if (!directory->Add(name, sector))
+        else if (!directory->Add(name, sector, isDirectory))
             success = FALSE; // no space in directory
         else
         {
             hdr = new FileHeader;
+            // Allocate space according to fileSize or 
             if (!hdr->Allocate(freeMap, initialSize))
                 success = FALSE; // no space on disk for data
             else

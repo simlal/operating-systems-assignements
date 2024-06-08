@@ -43,7 +43,7 @@ Directory::Directory(int size)
     table = new DirectoryEntry[size];
     tableSize = size;
     for (int i = 0; i < tableSize; i++)
-	table[i].inUse = FALSE;
+	    table[i].inUse = FALSE;
 }
 
 //----------------------------------------------------------------------
@@ -114,10 +114,29 @@ Directory::Find(char *name)
     int i = FindIndex(name);
 
     if (i != -1)
-	return table[i].sector;
+	    return table[i].sector;
     return -1;
 }
 
+//----------------------------------------------------------------------
+// Directory::FindDirectory
+// 	Look up directory name in directory, and return the disk sector number
+//	where the file's header is stored. Return -1 if the name isn't 
+//	in the directory.
+//
+//	"name" -- the directory name to look up
+//----------------------------------------------------------------------
+
+int Directory::FindDirectory(char* name)
+{
+    int i = FindIndex(name);
+
+    if (i != -1 && table[i].isDirectory == TRUE)
+    {
+        return table[i].sector;
+    }
+    return -1;
+}
 
 //----------------------------------------------------------------------
 // Directory::Add
@@ -128,21 +147,24 @@ Directory::Find(char *name)
 //
 //	"name" -- the name of the file being added
 //	"newSector" -- the disk sector containing the added file's header
+// "isDirectory" -- true if the file is a directory
 //----------------------------------------------------------------------
 
 bool
-Directory::Add(char *name, int newSector)
+Directory::Add(char *name, int newSector, bool isDirectory)
 { 
     if (FindIndex(name) != -1)
-	return FALSE;
+        return FALSE;
 
-    for (int i = 0; i < tableSize; i++)
+    for (int i = 0; i < tableSize; i++) {
         if (!table[i].inUse) {
             table[i].inUse = TRUE;
             strncpy(table[i].name, name, FileNameMaxLen); 
-            table[i].sector = newSector;			
-        return TRUE;
-	}
+            table[i].sector = newSector;
+            table[i].isDirectory = isDirectory;
+            return TRUE;
+	    }
+    }
     return FALSE;	// no space.  Fix when we have extensible files.
 }
 

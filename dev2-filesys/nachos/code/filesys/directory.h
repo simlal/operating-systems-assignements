@@ -31,11 +31,12 @@
 
 class DirectoryEntry {
   public:    
-	bool inUse;				// Is this directory entry in use?
+    bool inUse;				// Is this directory entry in use?
     int sector;				// Location on disk to find the 
-					//   FileHeader for this file 
+          //   FileHeader for this file 
     char name[FileNameMaxLen + 1];	// Text name for file, with +1 for 
-					// the trailing '\0'
+          // the trailing '\0'
+    bool isDirectory;
 };
 
 // The following class defines a UNIX-like "directory".  Each entry in
@@ -63,7 +64,8 @@ class Directory {
 
     int FindDirectory (char *name);		// Find the sector number of the 
 					// FileHeader for directory: "name"
-	bool Add(char *name, int newSector);  // Add a file name into the directory
+	  // Add a file name into the directory
+    bool Add(char *name, int newSector, bool isDirectory);  
 	
     bool Remove(char *name);		// Remove a file from the directory
 
