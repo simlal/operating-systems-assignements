@@ -36,7 +36,7 @@ class DirectoryEntry {
           //   FileHeader for this file 
     char name[FileNameMaxLen + 1];	// Text name for file, with +1 for 
           // the trailing '\0'
-    bool isDirectory;
+    bool isDirectory; // True if a entry is a directory
 };
 
 // The following class defines a UNIX-like "directory".  Each entry in
@@ -65,7 +65,7 @@ class Directory {
     int FindDirectory (char *name);		// Find the sector number of the 
 					// FileHeader for directory: "name"
 	  // Add a file name into the directory
-    bool Add(char *name, int newSector, bool isDirectory);  
+    bool Add(char *name, int newSector, bool isDirectory);
 	
     bool Remove(char *name);		// Remove a file from the directory
 
