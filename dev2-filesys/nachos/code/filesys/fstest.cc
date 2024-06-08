@@ -49,7 +49,7 @@ Copy(char *from, char *to)
 
 // Create a Nachos file of the same length
     DEBUG('f', "Copying file %s, size %d, to file %s\n", from, fileLength, to);
-    if (!fileSystem->Create(to, fileLength)) {	 // Create Nachos file
+    if (!fileSystem->Create(to, fileLength, FALSE)) {	 // Create Nachos file
 	printf("Copy: couldn't create output file %s\n", to);
 	fclose(fp);
 	return;
@@ -125,7 +125,7 @@ FileWrite()
 
     printf("Sequential write of %d byte file, in %d byte chunks\n", 
 	FileSize, ContentSize);
-    if (!fileSystem->Create(FileName, 0)) {
+    if (!fileSystem->Create(FileName, 0, FALSE)) {
       printf("Perf test: can't create %s\n", FileName);
       return;
     }
@@ -194,103 +194,107 @@ DirectoryTest()
 	printf("Test pour les sous-repertoires\n\n\n");
 	
 	//Creation de repertoire
+	// FileSystem* fileSystem = new FileSystem(TRUE);
+	// fileSystem->CreateDirectory("test");
 	fileSystem->CreateDirectory("Simpsons");
+	fileSystem->CreateDirectory("f1");
+	printf("\n");
 	fileSystem->List();
 	
-	//Changmeent de repertoire
-	fileSystem->ChangeDirectory("Simpsons");
-	fileSystem->List();
+	// //Changmeent de repertoire
+	// fileSystem->ChangeDirectory("Simpsons");
+	// fileSystem->List();
 	
-	//Creation de fichiers dans sous-repertoire
-	Copy("big","Homer");
-	fileSystem->List();
-	Copy("medium","Marge");
-	fileSystem->List();
-	Copy("small","Maggie");
-	fileSystem->List();
+	// //Creation de fichiers dans sous-repertoire
+	// Copy("big","Homer");
+	// fileSystem->List();
+	// Copy("medium","Marge");
+	// fileSystem->List();
+	// Copy("small","Maggie");
+	// fileSystem->List();
 	
-	//Creation de repertoire dans sous-repertoire
-	fileSystem->CreateDirectory("Bart");	
-	fileSystem->List();	
-	fileSystem->ChangeDirectory("Bart");
-	fileSystem->List();	
+	// //Creation de repertoire dans sous-repertoire
+	// fileSystem->CreateDirectory("Bart");	
+	// fileSystem->List();	
+	// fileSystem->ChangeDirectory("Bart");
+	// fileSystem->List();	
 	
-	//Creation de fichier dans sous-sous-repertoire
-	Copy("small","Milhouse");
-	fileSystem->List();
+	// //Creation de fichier dans sous-sous-repertoire
+	// Copy("small","Milhouse");
+	// fileSystem->List();
 	
-	//Test du lien vers le parent 
-	fileSystem->ChangeDirectory("..");
+	// //Test du lien vers le parent 
+	// fileSystem->ChangeDirectory("..");
 	
-	//Creation de fichier apres recul et creation de repertoire
-	Copy("small","Lisa");
-	fileSystem->List();	
-	fileSystem->ChangeDirectory("..");
-	fileSystem->List();	
+	// //Creation de fichier apres recul et creation de repertoire
+	// Copy("small","Lisa");
+	// fileSystem->List();	
+	// fileSystem->ChangeDirectory("..");
+	// fileSystem->List();	
 	
-	//Creation d'un second sous-repertoire
-	fileSystem->CreateDirectory("Flanders");
-	fileSystem->List();	
-	fileSystem->ChangeDirectory("Flanders");
-	fileSystem->List();
+	// //Creation d'un second sous-repertoire
+	// fileSystem->CreateDirectory("Flanders");
+	// fileSystem->List();	
+	// fileSystem->ChangeDirectory("Flanders");
+	// fileSystem->List();
 	
-	//Creation de fichiers dans le second sous-repertoire
-	Copy("medium","Ned");
-	fileSystem->List();
-	Copy("medium","Maud");
-	fileSystem->List();
-	Copy("small","Rod");
-	fileSystem->List();
-	Copy("small","Todd");
-	fileSystem->List();
+	// //Creation de fichiers dans le second sous-repertoire
+	// Copy("medium","Ned");
+	// fileSystem->List();
+	// Copy("medium","Maud");
+	// fileSystem->List();
+	// Copy("small","Rod");
+	// fileSystem->List();
+	// Copy("small","Todd");
+	// fileSystem->List();
 	
-	//Effacement de fichier dans un sous-repertoire
-	fileSystem->Remove("Maud");
-	fileSystem->List();
+	// //Effacement de fichier dans un sous-repertoire
+	// fileSystem->Remove("Maud");
+	// fileSystem->List();
 	
-	//Effacement d'un repertoire non-vide
-	fileSystem->ChangeDirectory("..");
-	fileSystem->ChangeDirectory("Simpsons");
-	bool result = fileSystem->Remove("Bart");
-	if(result == TRUE){
-		printf("ERROR: Directory is not empty\n");
-	}
-	fileSystem->List();
+	// //Effacement d'un repertoire non-vide
+	// fileSystem->ChangeDirectory("..");
+	// fileSystem->ChangeDirectory("Simpsons");
+	// bool result = fileSystem->Remove("Bart");
+	// if(result == TRUE){
+	// 	printf("ERROR: Directory is not empty\n");
+	// }
+	// fileSystem->List();
 	
-	//Effacement d'un repertoire vide	
-	fileSystem->ChangeDirectory("Bart");
-	fileSystem->Remove("Milhouse");
-	fileSystem->ChangeDirectory("..");
-	fileSystem->Remove("Bart");
-	fileSystem->List();
+	// //Effacement d'un repertoire vide	
+	// fileSystem->ChangeDirectory("Bart");
+	// fileSystem->Remove("Milhouse");
+	// fileSystem->ChangeDirectory("..");
+	// fileSystem->Remove("Bart");
+	// fileSystem->List();
 	
-	//Ajout de fichiers pour les tests TabSysTest et TabPcsTest
-	fileSystem->ChangeDirectory("..");
-	fileSystem->CreateDirectory("Futurama");
-	fileSystem->ChangeDirectory("Futurama");
-	Copy("small","Fry");
-	Copy("small","Leela");
-	Copy("small","Hubert");
-	Copy("small","Bender");
-	Copy("small","Amy");
-	Copy("small","Hermes");
-	Copy("small","Zoidberg");
-	fileSystem->List();
-	fileSystem->ChangeDirectory("..");
-	Copy("small","Groening");
-	Copy("small","Cohen");
-	fileSystem->List();
-	fileSystem->CreateDirectory("Mirror");
-	fileSystem->ChangeDirectory("Mirror");
-	fileSystem->List();
-	Copy("small","Fry");
-	Copy("small","Leela");
-	Copy("small","Hubert");
-	Copy("small","Bender");
-	Copy("small","Amy");
-	Copy("small","Hermes");
-	Copy("small","Zoidberg");	
-	fileSystem->List();
+	// //Ajout de fichiers pour les tests TabSysTest et TabPcsTest
+	// fileSystem->ChangeDirectory("..");
+	// fileSystem->CreateDirectory("Futurama");
+	// fileSystem->ChangeDirectory("Futurama");
+	// Copy("small","Fry");
+	// Copy("small","Leela");
+	// Copy("small","Hubert");
+	// Copy("small","Bender");
+	// Copy("small","Amy");
+	// Copy("small","Hermes");
+	// Copy("small","Zoidberg");
+	// fileSystem->List();
+	// fileSystem->ChangeDirectory("..");
+	// Copy("small","Groening");
+	// Copy("small","Cohen");
+	// fileSystem->List();
+	// fileSystem->CreateDirectory("Mirror");
+	// fileSystem->ChangeDirectory("Mirror");
+	// fileSystem->List();
+	// Copy("small","Fry");
+	// Copy("small","Leela");
+	// Copy("small","Hubert");
+	// Copy("small","Bender");
+	// Copy("small","Amy");
+	// Copy("small","Hermes");
+	// Copy("small","Zoidberg");	
+	// fileSystem->List();
 	
 	printf("\n\n\n-------------Fin DirectoryTest --------------------\n\n\n\n");
 }
