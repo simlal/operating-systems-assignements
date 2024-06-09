@@ -20,8 +20,8 @@ for f in $(ls *.h *.cc); do
 done
 cd $THREADS_DIR_WIN
 echo "Copying 'thread.cc' and 'thread.h' from win machine to VM..."
-scp thread.cc ubuntu@$VM_IP:$FILESYS_DIR_VM/$f
-scp thread.h ubuntu@$VM_IP:$FILESYS_DIR_VM/$f
+scp thread.cc ubuntu@$VM_IP:$THREADS_DIR_VM/thread.cc
+scp thread.h ubuntu@$VM_IP:$THREADS_DIR_VM/thread.h
 
 if [ $? -ne 0 ]; then
     echo "Error copying files to VM."
