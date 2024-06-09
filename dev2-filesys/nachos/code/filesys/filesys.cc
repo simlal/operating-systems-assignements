@@ -66,6 +66,10 @@
 #define DirectoryFileSize 	(sizeof(DirectoryEntry) * NumDirEntries)
 
 
+// Max size of the path of the current directory
+#define PathMaxLen (NumSectors * (FileNameMaxLen + 1))  // Pour simplif 
+
+
 //----------------------------------------------------------------------
 // FileSystem::FileSystem
 // 	Initialize the file system.  If format = TRUE, the disk has
@@ -145,6 +149,9 @@ FileSystem::FileSystem(bool format)
         freeMapFile = new OpenFile(FreeMapSector);
         directoryFile = new OpenFile(DirectorySector);
     }
+    currentDir = new char[PathMaxLen];
+    strcpy(currentDir, "/");
+    currentDirSector = DirectorySector;
 }
 
 //IFT320
@@ -182,18 +189,65 @@ void FileSystem::TouchOpenedFiles(char * modif){
 }
 
 
+//IFT320: Print currentDir info for debugging
+void FileSystem::CdInfo()
+{
+    printf("Current directory info:\n");
+    printf("currentDir (fullpath): %s\n", currentDir);
+    printf("sector: %d\n", currentDirSector);
+}
+
 //IFT320: Fonction de changement de repertoire. Doit etre implementee pour la partie A.
-bool FileSystem::ChangeDirectory(char* name){
-    // Check if the directory exists
-    printf("dirFile len: %d\n", directoryFile->Length());
-    // Change the current directory
-    // Deal with return, true if ok, false if no permissions etc.
-    ASSERT(FALSE);			
+bool FileSystem::ChangeDirectory(char* name)
+{
+    bool success;
+
+    // Initialize to currentDir
+    Directory* cdir = new Directory(NumDirEntries);
+    OpenFile* cdFile = new OpenFile(currentDirSector);
+    cdir->FetchFrom(cdFile);
+
+    // Check if the target cdir exists and change to it
+    int targetDirSector;
+
+    // Target is the parent of currentDir
+    if (strcmp(name, "..") == 0)
+    {
+        // Only change to parent when not at root
+        if (strcmp(currentDir, "/") != 0)
+        {
+            targetDirSector = cdir->GetParentSector();
+        }
+    }
+    // Check if target is within the list of cd entries
+    else
+    {
+        int targetDirSector = cdir->FindDirectory(name);
+    }
+    
+    // Check if the target dir exists and change to it
+    if (targetDirSector == -1)
+    {
+        // target dir does not exists
+        success = FALSE;
+    }
+    else
+    {
+        // Change the name and sector of current dir in FileSystem
+        char* newCurrentDir = new char[PathMaxLen];
+        delete currentDir;
+        currentDir = newCurrentDir;
+        currentDirSector = targetDirSector;
+        
+    }
+    delete cdFile;
+    delete currentDir;
+    return success;    
 }
 
 
 //IFT320: Fonction de creation de repertoires. Doit etre implementee pour la partie A.
-bool FileSystem::CreateDirectory(char *name)
+bool FileSystem::CreateDirectory(char* name)
 {
     return Create(name, NumDirEntries, TRUE);
 }
@@ -236,11 +290,13 @@ bool FileSystem::Create(char *name, int initialSize, bool isDirectory)
     int sector;
     bool success;
 
-    DEBUG('f', "Creating file %s, size %d, isDirectory %d\n", name, initialSize, isDirectory);
+    DEBUG('f', "Creating file/dir %s, size %d, isDirectory %d\n", name, initialSize, isDirectory);
 
     directory = new Directory(NumDirEntries);
-	directory->FetchFrom(directoryFile);
+    OpenFile* currentDirFile = new OpenFile(currentDirSector);
+	directory->FetchFrom(currentDirFile);
 
+    // Check if the directory exists
     if (directory->Find(name) != -1)
     {
         success = FALSE; // file is already in directory
@@ -278,6 +334,7 @@ bool FileSystem::Create(char *name, int initialSize, bool isDirectory)
         delete freeMap;
     }
     delete directory;
+    delete currentDirFile;
     return success;
 }
 

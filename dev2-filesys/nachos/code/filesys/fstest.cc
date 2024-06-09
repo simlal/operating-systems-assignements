@@ -194,16 +194,22 @@ DirectoryTest()
 	printf("Test pour les sous-repertoires\n\n\n");
 	
 	//Creation de repertoire
-	// FileSystem* fileSystem = new FileSystem(TRUE);
-	// fileSystem->CreateDirectory("test");
+	FileSystem* fileSystem = new FileSystem(TRUE);
+	printf("Test create directories (no-overlap)\n");
 	fileSystem->CreateDirectory("Simpsons");
 	fileSystem->CreateDirectory("f1");
 	printf("\n");
 	fileSystem->List();
+
 	
 	// //Changmeent de repertoire
+	printf("Test changing directories into 'Simpsons'\n");
+	printf("Test cd info\n");
+	fileSystem->CdInfo();
+	
 	// fileSystem->ChangeDirectory("Simpsons");
 	// fileSystem->List();
+	
 	
 	// //Creation de fichiers dans sous-repertoire
 	// Copy("big","Homer");

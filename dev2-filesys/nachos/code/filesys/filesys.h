@@ -118,7 +118,7 @@ class FileSystem {
 	
 	FileHandle Open(char *name); 		
 	bool ChangeDirectory(char* name);
-	bool CreateDirectory(char *name);
+	bool CreateDirectory(char* name);
 	int Read(FileHandle file, char *into, int numBytes);
 	int Write(FileHandle file, char *from, int numBytes);
 	int ReadAt(FileHandle file, char *into, int numBytes,int position);
@@ -126,6 +126,7 @@ class FileSystem {
 	void Close (FileHandle file);
 	void CloseAll();
 	void TouchOpenedFiles(char * modif);
+	void CdInfo(); // Print cd info for debugging
 	
 
   private:
@@ -134,6 +135,11 @@ class FileSystem {
 	
 	OpenFile* directoryFile;		// "Root" directory -- list of 
 					// file names, represented as a file
+	// Pointer to the name of the full path to the current dir
+	char* currentDir;
+
+	// Sector num of the currently opened directory
+	int currentDirSector;
 };
 
 
