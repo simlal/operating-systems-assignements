@@ -192,56 +192,81 @@ void FileSystem::TouchOpenedFiles(char * modif){
 //IFT320: Print currentDir info for debugging
 void FileSystem::CdInfo()
 {
-    printf("Current directory info:\n");
-    printf("currentDir (fullpath): %s\n", currentDir);
-    printf("sector: %d\n", currentDirSector);
+    printf("###--- Current directory info --- ###\n");
+    printf("\tcurrentDir (fullpath): %s\n", currentDir);
+    printf("\tsector: %d\n\n", currentDirSector);
 }
 
 //IFT320: Fonction de changement de repertoire. Doit etre implementee pour la partie A.
+//TODO DEBUG CHANGEDIRECTORY WITH '..'
 bool FileSystem::ChangeDirectory(char* name)
 {
     bool success;
 
-    // Initialize to currentDir
+    // Get the current directory
     Directory* cdir = new Directory(NumDirEntries);
     OpenFile* cdFile = new OpenFile(currentDirSector);
     cdir->FetchFrom(cdFile);
 
-    // Check if the target cdir exists and change to it
-    int targetDirSector;
-
-    // Target is the parent of currentDir
-    if (strcmp(name, "..") == 0)
-    {
-        // Only change to parent when not at root
-        if (strcmp(currentDir, "/") != 0)
-        {
-            targetDirSector = cdir->GetParentSector();
-        }
-    }
-    // Check if target is within the list of cd entries
-    else
-    {
-        int targetDirSector = cdir->FindDirectory(name);
-    }
+    // FindDirectory assumes that .. is present in all dirs but root
+    int targetDirSector = cdir->FindDirectory(name);
     
     // Check if the target dir exists and change to it
     if (targetDirSector == -1)
     {
-        // target dir does not exists
-        success = FALSE;
+        success = FALSE; // target dir does not exists
     }
     else
     {
-        // Change the name and sector of current dir in FileSystem
-        char* newCurrentDir = new char[PathMaxLen];
-        delete currentDir;
-        currentDir = newCurrentDir;
-        currentDirSector = targetDirSector;
+        // Target is current dir
+        if (strcmp(name, ".") == 0)
+        {
+            // Do nothing
+            success = TRUE;
+        }
         
+        // Change the name and sector of current dir in FileSystem
+        if (strcmp(name, "..") == 0)
+        {
+            // Find the last slash in the currentDir
+            char* lastSlash = strrchr(currentDir, '/');
+            if (lastSlash == currentDir) 
+            {
+                // Fallback if '..' present in root, do nothing
+                success = TRUE;
+            }
+            else
+            {
+                // Remove the last part of the path
+                *lastSlash = '\0';
+                // Find the parent sector
+                currentDirSector = targetDirSector;
+                success = TRUE;
+            }
+        }
+        else if (strcmp(name, "/") == 0)
+        {
+            // Go to root
+            currentDir[1] = '\0';
+            currentDirSector = DirectorySector;
+        }
+        else
+        {
+            // Append the new dir to the current path
+            char* newCurrentDir = new char[PathMaxLen];
+            strcpy(newCurrentDir, currentDir);
+            strcat(newCurrentDir, name);
+            strcat(newCurrentDir, "/");
+            
+            // Update the current dir and sector
+            delete[] currentDir;
+            currentDir = newCurrentDir;
+            currentDirSector = targetDirSector;
+            success = TRUE;
+        }
     }
     delete cdFile;
-    delete currentDir;
+    delete cdir;
     return success;    
 }
 
@@ -281,7 +306,6 @@ bool FileSystem::CreateDirectory(char* name)
 //	"initialSize" -- size of file to be created
 // "isDirectory" -- true if the file is a directory
 //----------------------------------------------------------------------
-//TODO TEST ISDIR
 bool FileSystem::Create(char *name, int initialSize, bool isDirectory)
 {
     Directory *directory;
@@ -292,6 +316,7 @@ bool FileSystem::Create(char *name, int initialSize, bool isDirectory)
 
     DEBUG('f', "Creating file/dir %s, size %d, isDirectory %d\n", name, initialSize, isDirectory);
 
+    // Get the current directory
     directory = new Directory(NumDirEntries);
     OpenFile* currentDirFile = new OpenFile(currentDirSector);
 	directory->FetchFrom(currentDirFile);
@@ -307,7 +332,6 @@ bool FileSystem::Create(char *name, int initialSize, bool isDirectory)
     }
     else
     {
-        printf("Creating file or directory %s\n", name);
         freeMap = new BitMap(NumSectors);
         freeMap->FetchFrom(freeMapFile);
         sector = freeMap->Find(); // find a sector to hold the file header
@@ -318,7 +342,7 @@ bool FileSystem::Create(char *name, int initialSize, bool isDirectory)
         else
         {
             hdr = new FileHeader;
-            // Allocate space according to fileSize or 
+            // Allocate space according to fileSize or directory size 
             if (!hdr->Allocate(freeMap, initialSize))
                 success = FALSE; // no space on disk for data
             else
@@ -328,6 +352,22 @@ bool FileSystem::Create(char *name, int initialSize, bool isDirectory)
                 hdr->WriteBack(sector);
                 directory->WriteBack(directoryFile);
                 freeMap->WriteBack(freeMapFile);
+
+                // Add a ".." entry for a new directory
+                if (isDirectory)
+                {
+                    Directory *newDir = new Directory(NumDirEntries);
+                    OpenFile *newDirFile = new OpenFile(sector);
+                    newDir->Add("..", currentDirSector, TRUE);
+                    newDir->WriteBack(newDirFile);
+                    delete newDir;
+                    delete newDirFile;
+                    printf("Created directory %s (sector %d)\n", name, sector);
+                }
+                else
+                {
+                    printf("Created file %s (sector %d, size %d bytes)\n", name, sector, initialSize);
+                }
             }
             delete hdr;
         }
@@ -420,17 +460,19 @@ bool FileSystem::Remove(char *name)
 
 //----------------------------------------------------------------------
 // FileSystem::List
-// 	List all the files in the file system directory.
+// 	List all the files in the current directory.
 //----------------------------------------------------------------------
 
 void
 FileSystem::List()
 {
-    Directory *directory = new Directory(NumDirEntries);
+    // Get the current directory
+    Directory *cdir = new Directory(NumDirEntries);
+    OpenFile* cdirFile = new OpenFile(currentDirSector);
 	
-    directory->FetchFrom(directoryFile);
-    directory->List();
-    delete directory;
+    cdir->FetchFrom(cdirFile);
+    cdir->List();
+    delete cdir;
 }
 
 //----------------------------------------------------------------------

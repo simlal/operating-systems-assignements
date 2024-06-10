@@ -74,6 +74,9 @@ class Directory {
     void Print();			// Verbose print of the contents
 					//  of the directory -- all the file
 					//  names and their contents.	
+    
+    // Fetch the sector number of the parent directory (up)
+    int GetParentSector();
 
   private:
     int tableSize;			// Number of directory entries

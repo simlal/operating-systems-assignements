@@ -226,3 +226,14 @@ Directory::Print()
     printf("\n");
     delete hdr;
 }
+
+/*
+Directory::getParentSector
+Get the sector number of the parent.
+If not found no parent (i.e. root), returns -1
+*/
+int
+Directory::GetParentSector()
+{
+    return FindDirectory("..");
+}
