@@ -6,7 +6,7 @@ FILESYS_DIR_WIN=$SCRIPT_DIR/programming/ift320_dev2/filesys
 THREADS_DIR_WIN=$SCRIPT_DIR/programming/ift320_dev2/threads
 
 # VM credentials and dir
-VM_IP='192.168.59.132'
+VM_IP='192.168.198.128'
 FILESYS_DIR_VM='/home/ubuntu/NachosLinuxUdes.IFT320/nachos-tp2-lals2906/code/filesys'
 THREADS_DIR_VM='/home/ubuntu/NachosLinuxUdes.IFT320/nachos-tp2-lals2906/code/threads'
 

@@ -1,12 +1,13 @@
 #! /usr/bin/bash
 # Read the win machine username password from .env
-WIN_USERNAME=$(cat .env | grep -oP "WIN_USERNAME=\K.*")
-WIN_ACCOUNT_PASSWORD=$(cat .env | grep -oP "WIN_ACCOUNT_PASSWORD=\K.*")
-WIN_MACHINE_IP=$(cat .env | grep -oP "WIN_MACHINE_IP=\K.*")
-VM_IP=$(cat .env | grep -oP "VM_IP=\K.*")
+WIN_USERNAME=$(grep -oP "^WIN_USERNAME='\K[^']*" .env)
+WIN_ACCOUNT_PASSWORD=$(grep -oP "^WIN_ACCOUNT_PASSWORD='\K[^']*" .env)
+WIN_MACHINE_IP=$(grep -oP "^WIN_MACHINE_IP='\K[^']*" .env)
+WIN_USER_PATH=$(grep -oP "^WIN_USER_PATH='\K[^']*" .env)
 
 # Check sshpass dependencies
 if [[ ! $(which sshpass) ]]; then
+    echo "sshpass required. Use nix-shell!"
     exit 1
 fi
 
@@ -17,13 +18,11 @@ FILESYS_DIR_DECK=$MAIN_MACHOS_DECK/code/filesys
 THREADS_DIR_DECK=$MAIN_MACHOS_DECK/code/threads
 
 # Directories on WIN machine
-MAIN_NACHOS_WIN=/Users/simla/programming/ift320_dev2/
+MAIN_NACHOS_WIN=$WIN_USER_PATH/programming/ift320_dev2/
 FILESYS_DIR_WIN=$MAIN_NACHOS_WIN/filesys
 THREADS_DIR_WIN=$MAIN_NACHOS_WIN/threads
 
 # First copy from deck to win machine
-VM_PASSWORD='ubuntu'
-
 # Use the $1 if provided to only copy the file otherwise all files
 if [[ $1 ]]; then
     # For threads-related (file startswith 'thread.')
@@ -53,4 +52,6 @@ else
 fi
 # Copy from win machine to the vm
 # First ssh into win then scp into each vm
-echo "Call manually './copy-to-vm.sh' from within Git Bash in the win machine."
+echo "\"C:\\Program Files\\Git\\bin\\bash.exe\" -c \"./copy-to-vm.sh\""
+sshpass -p $WIN_ACCOUNT_PASSWORD ssh $WIN_USERNAME@$WIN_MACHINE_IP
+#"C:\Program Files\Git\bin\bash.exe" -c "./copy-to-vm.sh"
