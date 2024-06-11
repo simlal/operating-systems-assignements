@@ -200,16 +200,14 @@ DirectoryTest()
 	fileSystem->CreateDirectory("f1");
 	printf("\n");
 	fileSystem->List();
+	fileSystem->CdInfo();
 
 	
 	// //Changmeent de repertoire
 	printf("Test changing directories into 'Simpsons'\n");
-	printf("Test cd info\n");
+	fileSystem->ChangeDirectory("Simpsons");
+	fileSystem->List();
 	fileSystem->CdInfo();
-	
-	// fileSystem->ChangeDirectory("Simpsons");
-	// fileSystem->List();
-	
 	
 	// //Creation de fichiers dans sous-repertoire
 	// Copy("big","Homer");
