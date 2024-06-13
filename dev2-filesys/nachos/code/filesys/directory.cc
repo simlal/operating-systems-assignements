@@ -196,13 +196,13 @@ Directory::Remove(char *name)
 void
 Directory::List()
 {
-	printf("--Directory contents--\n\n");
+	printf("--Directory contents--\n");
 	for (int i = 0; i < tableSize; i++)
 	if (table[i].inUse)
 	    printf("sec_%d: %s\n", table[i].sector, table[i].name);
     else
 	    DEBUG('g', "sec_%d: %s (inUse=%i)\n", table[i].sector, table[i].name, table[i].inUse);
-	printf("\n----- End of list ----\n\n");
+    printf("----- End of list ----\n");
 }
 
 //----------------------------------------------------------------------

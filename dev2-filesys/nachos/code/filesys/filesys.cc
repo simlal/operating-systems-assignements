@@ -192,7 +192,14 @@ void FileSystem::TouchOpenedFiles(char * modif){
 void FileSystem::CdInfo()
 {
     printf("###--- Current directory info --- ###\n");
+    Directory* cdir = new Directory(NumDirEntries);
+    OpenFile* cdirFile = new OpenFile(cdSector);
     printf("\tsector: %d\n\n", cdSector);
+    cdir->FetchFrom(cdirFile);
+    cdir->List();
+    printf("###--- End of current directory info --- ###\n");
+    delete cdir;
+    delete cdirFile;
 }
 
 //IFT320: Fonction de changement de repertoire. Doit etre implementee pour la partie A.
@@ -215,6 +222,7 @@ bool FileSystem::ChangeDirectory(char* name)
     }
     else
     {
+        printf("Changing to directory %s (sector %d)\n", name, targetDirSector);
         // Make the target dir the current dir
         cdSector = targetDirSector;
         success = TRUE;
@@ -304,7 +312,7 @@ bool FileSystem::Create(char *name, int initialSize, bool isDirectory)
                 success = TRUE;
                 // everthing worked, flush all changes back to disk
                 hdr->WriteBack(sector);
-                directory->WriteBack(directoryFile);
+                directory->WriteBack(currentDirFile);
                 freeMap->WriteBack(freeMapFile);
 
                 // Add a "." and ".." entry for a new directory
@@ -345,20 +353,21 @@ bool FileSystem::Create(char *name, int initialSize, bool isDirectory)
 
 FileHandle FileSystem::Open(char *name)
 { 
-    Directory *directory = new Directory(NumDirEntries);
+    Directory* cdir = new Directory(NumDirEntries);
+    OpenFile* cdirFile = new OpenFile(cdSector);
     OpenFile *openFile = NULL;
     int sector;	
 	
 
     DEBUG('f', "Opening file %s\n", name);
 	
-    directory->FetchFrom(directoryFile);
-    sector = directory->Find(name); 
+    cdir->FetchFrom(cdirFile);
+    sector = cdir->Find(name); 
     if (sector >= 0) {		
 		openFile = new OpenFile(sector);	// name was found in directory 	
     }
 	
-	delete directory;
+	delete cdir;
 	
     return openFile;				// return NULL if not found
 }
@@ -381,35 +390,44 @@ bool FileSystem::Remove(char *name)
 { 
 	//IFT320: partie A
 	
-    Directory *directory;
+    Directory *cdir;
+    OpenFile *cdirFile;
     BitMap *freeMap;
     FileHeader *fileHdr;
     int sector;
     
-    directory = new Directory(NumDirEntries);
-	
-    directory->FetchFrom(directoryFile);
-    sector = directory->Find(name);
-    if (sector == -1) {
-       delete directory;
-       return FALSE;			 // file not found 
+    // Get the current directory
+    cdir = new Directory(NumDirEntries);
+	cdirFile = new OpenFile(cdSector);
+    
+    // Check if the file exists
+    cdir->FetchFrom(cdirFile);
+    sector = cdir->Find(name);
+    if (sector == -1) 
+    {
+        delete cdir;
+        delete cdirFile;
+        return FALSE;			 // file not found 
     }
-    	
+    // Get the file header and freemap
 	fileHdr = new FileHeader;
     fileHdr->FetchFrom(sector);
 	
     freeMap = new BitMap(NumSectors);
     freeMap->FetchFrom(freeMapFile);
 
+    // Free space/rm file
     fileHdr->Deallocate(freeMap);  		// remove data blocks
     freeMap->Clear(sector);			// remove header block
-    directory->Remove(name);
+    cdir->Remove(name);
 
+    // Write changes back to disk
     freeMap->WriteBack(freeMapFile);		// flush to disk
-    directory->WriteBack(directoryFile);        // flush to disk
+    cdir->WriteBack(cdirFile);        // flush to disk
     delete fileHdr;
-    delete directory;
     delete freeMap;
+    delete cdir;
+    delete cdirFile;
     return TRUE;
 } 
 
@@ -422,7 +440,7 @@ void
 FileSystem::List()
 {
     // Get the current directory
-    Directory *cdir = new Directory(NumDirEntries);
+    Directory* cdir = new Directory(NumDirEntries);
     OpenFile* cdirFile = new OpenFile(cdSector);
 	
     cdir->FetchFrom(cdirFile);
@@ -443,27 +461,34 @@ FileSystem::List()
 void
 FileSystem::Print()
 {
-    FileHeader *bitHdr = new FileHeader;
-    FileHeader *dirHdr = new FileHeader;
-    BitMap *freeMap = new BitMap(NumSectors);
-    Directory *directory = new Directory(NumDirEntries);
+    FileHeader* bitHdr = new FileHeader;
+    FileHeader* rdir = new FileHeader;
+    FileHeader* cdirHdr = new FileHeader;
+    BitMap* freeMap = new BitMap(NumSectors);
+    Directory* cdir = new Directory(NumDirEntries);
+    OpenFile* cdirFile = new OpenFile(cdSector);
+
 
     printf("Bit map file header:\n");
     bitHdr->FetchFrom(FreeMapSector);
     bitHdr->Print();
 
-    printf("Directory file header:\n");
-    dirHdr->FetchFrom(DirectorySector);
-    dirHdr->Print();
+    printf("Root dir file header:\n");
+    rdir->FetchFrom(DirectorySector);
+    rdir->Print();
+
+    printf("Current Directory file header:\n");
+    cdirHdr->FetchFrom(cdSector);
+    cdirHdr->Print();
 
     freeMap->FetchFrom(freeMapFile);
     freeMap->Print();
 	
-    directory->FetchFrom(directoryFile);
-    directory->Print();
+    cdir->FetchFrom(cdirFile);
+    cdir->Print();
 
     delete bitHdr;
-    delete dirHdr;
+    delete cdirHdr;
     delete freeMap;
-    delete directory;
+    delete cdir;
 } 
