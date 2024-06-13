@@ -130,6 +130,10 @@ main(int argc, char **argv)
 	    ASSERT(argc > 1);
 	    fileSystem->Remove(*(argv + 1));
 	    argCount = 2;
+	} else if (!strcmp(*argv, "-cd")) {
+		ASSERT(argc > 1);
+		fileSystem->ChangeDirectory(*(argv + 1));
+		argCount = 2;
 	} else if (!strcmp(*argv, "-l")) {	// list Nachos directory
             fileSystem->List();
 	} else if (!strcmp(*argv, "-dt")) {	// IFT320: directory test
