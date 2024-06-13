@@ -135,11 +135,9 @@ class FileSystem {
 	
 	OpenFile* directoryFile;		// "Root" directory -- list of 
 					// file names, represented as a file
-	// Pointer to the name of the full path to the current dir
-	char* currentDir;
 
 	// Sector num of the currently opened directory
-	int currentDirSector;
+	int cdSector;
 };
 
 

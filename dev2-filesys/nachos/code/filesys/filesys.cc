@@ -149,9 +149,8 @@ FileSystem::FileSystem(bool format)
         freeMapFile = new OpenFile(FreeMapSector);
         directoryFile = new OpenFile(DirectorySector);
     }
-    currentDir = new char[PathMaxLen];
-    strcpy(currentDir, "/");
-    currentDirSector = DirectorySector;
+    // Set the current directory to root at the beginning
+    cdSector = DirectorySector;
 }
 
 //IFT320
@@ -193,22 +192,20 @@ void FileSystem::TouchOpenedFiles(char * modif){
 void FileSystem::CdInfo()
 {
     printf("###--- Current directory info --- ###\n");
-    printf("\tcurrentDir (fullpath): %s\n", currentDir);
-    printf("\tsector: %d\n\n", currentDirSector);
+    printf("\tsector: %d\n\n", cdSector);
 }
 
 //IFT320: Fonction de changement de repertoire. Doit etre implementee pour la partie A.
-//TODO DEBUG CHANGEDIRECTORY WITH '..'
 bool FileSystem::ChangeDirectory(char* name)
 {
     bool success;
 
     // Get the current directory
     Directory* cdir = new Directory(NumDirEntries);
-    OpenFile* cdFile = new OpenFile(currentDirSector);
+    OpenFile* cdFile = new OpenFile(cdSector);
     cdir->FetchFrom(cdFile);
 
-    // FindDirectory assumes that .. is present in all dirs but root
+    // FindDirectory assumes that '.' and '..' are entries when dir created
     int targetDirSector = cdir->FindDirectory(name);
     
     // Check if the target dir exists and change to it
@@ -218,52 +215,9 @@ bool FileSystem::ChangeDirectory(char* name)
     }
     else
     {
-        // Target is current dir
-        if (strcmp(name, ".") == 0)
-        {
-            // Do nothing
-            success = TRUE;
-        }
-        
-        // Change the name and sector of current dir in FileSystem
-        if (strcmp(name, "..") == 0)
-        {
-            // Find the last slash in the currentDir
-            char* lastSlash = strrchr(currentDir, '/');
-            if (lastSlash == currentDir) 
-            {
-                // Fallback if '..' present in root, do nothing
-                success = TRUE;
-            }
-            else
-            {
-                // Remove the last part of the path
-                *lastSlash = '\0';
-                // Find the parent sector
-                currentDirSector = targetDirSector;
-                success = TRUE;
-            }
-        }
-        else if (strcmp(name, "/") == 0)
-        {
-            // Go to root
-            currentDir[1] = '\0';
-            currentDirSector = DirectorySector;
-        }
-        else
-        {
-            // Append the new dir to the current path
-            char* newCurrentDir = new char[PathMaxLen];
-            strcpy(newCurrentDir, currentDir);
-            strcat(newCurrentDir, name);
-            strcat(newCurrentDir, "/");
-            
-            // Update the current dir and sector
-            delete[] currentDir;
-            currentDir = newCurrentDir;
-            currentDirSector = targetDirSector;
-            success = TRUE;
-        }
+        // Make the target dir the current dir
+        cdSector = targetDirSector;
+        success = TRUE;
     }
     delete cdFile;
     delete cdir;
@@ -318,7 +272,7 @@ bool FileSystem::Create(char *name, int initialSize, bool isDirectory)
 
     // Get the current directory
     directory = new Directory(NumDirEntries);
-    OpenFile* currentDirFile = new OpenFile(currentDirSector);
+    OpenFile* currentDirFile = new OpenFile(cdSector);
 	directory->FetchFrom(currentDirFile);
 
     // Check if the directory exists
@@ -353,12 +307,13 @@ bool FileSystem::Create(char *name, int initialSize, bool isDirectory)
                 directory->WriteBack(directoryFile);
                 freeMap->WriteBack(freeMapFile);
 
-                // Add a ".." entry for a new directory
+                // Add a "." and ".." entry for a new directory
                 if (isDirectory)
                 {
                     Directory *newDir = new Directory(NumDirEntries);
                     OpenFile *newDirFile = new OpenFile(sector);
-                    newDir->Add("..", currentDirSector, TRUE);
+                    newDir->Add(".", sector, TRUE);
+                    newDir->Add("..", cdSector, TRUE);
                     newDir->WriteBack(newDirFile);
                     delete newDir;
                     delete newDirFile;
@@ -468,7 +423,7 @@ FileSystem::List()
 {
     // Get the current directory
     Directory *cdir = new Directory(NumDirEntries);
-    OpenFile* cdirFile = new OpenFile(currentDirSector);
+    OpenFile* cdirFile = new OpenFile(cdSector);
 	
     cdir->FetchFrom(cdirFile);
     cdir->List();
