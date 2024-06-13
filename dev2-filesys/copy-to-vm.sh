@@ -19,7 +19,8 @@ for f in $(ls *.h *.cc); do
     scp $f ubuntu@$VM_IP:$FILESYS_DIR_VM/$f
 done
 cd $THREADS_DIR_WIN
-echo "Copying 'thread.cc' and 'thread.h' from win machine to VM..."
+echo "Copying 'main.cc', 'thread.cc' and 'thread.h' from win machine to VM..."
+scp main.cc ubuntu@$VM_IP:$THREADS_DIR_VM/main.cc
 scp thread.cc ubuntu@$VM_IP:$THREADS_DIR_VM/thread.cc
 scp thread.h ubuntu@$VM_IP:$THREADS_DIR_VM/thread.h
 

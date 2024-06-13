@@ -26,7 +26,7 @@ THREADS_DIR_WIN=$MAIN_NACHOS_WIN/threads
 # Use the $1 if provided to only copy the file otherwise all files
 if [[ $1 ]]; then
     # For threads-related (file startswith 'thread.')
-    if [[ $1 == thread.* ]];then
+    if [[ $1 == thread.* || $1 == main.cc ]]; then
         SOURCE_DIR_DECK=$THREADS_DIR_DECK
         TARGET_DIR_WIN=$THREADS_DIR_WIN
     else
@@ -45,7 +45,8 @@ else
         sshpass -v -p $WIN_ACCOUNT_PASSWORD scp $file $WIN_USERNAME@$WIN_MACHINE_IP:$FILESYS_DIR_WIN/$file
     done
     cd $THREADS_DIR_DECK
-    echo "Copying 'thread.cc' and 'thread.h' from SteamDeck to win machine..."
+    echo "Copying 'main.cc', 'thread.cc' and 'thread.h' from SteamDeck to win machine..."
+    sshpass -v -p $WIN_ACCOUNT_PASSWORD scp main.cc $WIN_USERNAME@$WIN_MACHINE_IP:$THREADS_DIR_WIN/main.cc
     sshpass -v -p $WIN_ACCOUNT_PASSWORD scp thread.cc $WIN_USERNAME@$WIN_MACHINE_IP:$THREADS_DIR_WIN/thread.cc
     sshpass -v -p $WIN_ACCOUNT_PASSWORD scp thread.h $WIN_USERNAME@$WIN_MACHINE_IP:$THREADS_DIR_WIN/thread.h
     echo "Files copied successfully."
