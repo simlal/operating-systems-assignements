@@ -78,6 +78,9 @@ class Directory {
     // Fetch the sector number of the parent directory (up)
     int GetParentSector();
 
+    // Check if the directory is empty
+    bool IsEmpty();
+
   private:
     int tableSize;			// Number of directory entries
     DirectoryEntry *table;		// Table of pairs: 

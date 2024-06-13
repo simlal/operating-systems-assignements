@@ -237,3 +237,19 @@ Directory::GetParentSector()
 {
     return FindDirectory("..");
 }
+
+/*
+Directory::IsEmpty
+Check if the directory is empty
+*/
+bool Directory::IsEmpty()
+{
+    for (int i = 0; i < tableSize; i++)
+    {
+        if (table[i].inUse && strcmp(table[i].name, ".") != 0 && strcmp(table[i].name, "..") != 0)
+        {
+            return FALSE;
+        }
+    }
+    return TRUE;
+}

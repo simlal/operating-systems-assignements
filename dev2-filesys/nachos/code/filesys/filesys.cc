@@ -202,7 +202,11 @@ void FileSystem::CdInfo()
     delete cdirFile;
 }
 
-//IFT320: Fonction de changement de repertoire. Doit etre implementee pour la partie A.
+//----------------------------------------------------------------------
+// FileSystem::ChangeDirectory
+// Fonction de changement de repertoire
+// Doit etre implementee pour la partie A.
+//----------------------------------------------------------------------
 bool FileSystem::ChangeDirectory(char* name)
 {
     bool success;
@@ -233,11 +237,17 @@ bool FileSystem::ChangeDirectory(char* name)
 }
 
 
-//IFT320: Fonction de creation de repertoires. Doit etre implementee pour la partie A.
+//----------------------------------------------------------------------
+// FileSystem::CreateDirectory
+// Fonction de creation de repertoire
+// Doit etre implementee pour la partie A.
+//----------------------------------------------------------------------
 bool FileSystem::CreateDirectory(char* name)
 {
     return Create(name, NumDirEntries, TRUE);
 }
+
+
 
 //----------------------------------------------------------------------
 // FileSystem::Create
@@ -368,7 +378,7 @@ FileHandle FileSystem::Open(char *name)
     }
 	
 	delete cdir;
-	
+    delete cdirFile;
     return openFile;				// return NULL if not found
 }
 
@@ -394,21 +404,28 @@ bool FileSystem::Remove(char *name)
     OpenFile *cdirFile;
     BitMap *freeMap;
     FileHeader *fileHdr;
+    bool isDirectory;
     int sector;
     
     // Get the current directory
     cdir = new Directory(NumDirEntries);
 	cdirFile = new OpenFile(cdSector);
-    
-    // Check if the file exists
     cdir->FetchFrom(cdirFile);
+    
+    // Check if the file or dir exists
     sector = cdir->Find(name);
     if (sector == -1) 
     {
         delete cdir;
         delete cdirFile;
-        return FALSE;			 // file not found 
+        return FALSE;			 // file or dir not found 
     }
+    isDirectory = FALSE;
+    if (cdir->FindDirectory(name) != -1)
+    {
+        isDirectory = TRUE;
+    }
+
     // Get the file header and freemap
 	fileHdr = new FileHeader;
     fileHdr->FetchFrom(sector);
@@ -416,7 +433,28 @@ bool FileSystem::Remove(char *name)
     freeMap = new BitMap(NumSectors);
     freeMap->FetchFrom(freeMapFile);
 
-    // Free space/rm file
+    // Remove dir only if empty
+    if (isDirectory)
+    {
+        Directory *targetDir = new Directory(NumDirEntries);
+        OpenFile *targetDirFile = new OpenFile(sector);
+        targetDir->FetchFrom(targetDirFile);
+        if (!targetDir->IsEmpty())
+        {
+            delete cdir;
+            delete cdirFile;
+            delete fileHdr;
+            delete freeMap;
+            delete targetDir;
+            delete targetDirFile;
+            return FALSE; // dir not empty
+        }
+        // cleanup  unneeded objects
+        delete targetDir;
+        delete targetDirFile;
+    }
+
+    // Free space/rm file/dir
     fileHdr->Deallocate(freeMap);  		// remove data blocks
     freeMap->Clear(sector);			// remove header block
     cdir->Remove(name);
@@ -429,7 +467,7 @@ bool FileSystem::Remove(char *name)
     delete cdir;
     delete cdirFile;
     return TRUE;
-} 
+}
 
 //----------------------------------------------------------------------
 // FileSystem::List
