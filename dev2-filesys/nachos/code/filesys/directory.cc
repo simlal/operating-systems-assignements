@@ -202,7 +202,7 @@ Directory::List()
 	    printf("sec_%d: %s\n", table[i].sector, table[i].name);
     else
 	    DEBUG('g', "sec_%d: %s (inUse=%i)\n", table[i].sector, table[i].name, table[i].inUse);
-    printf("----- End of list ----\n");
+    printf("----- End of list ----\n\n");
 }
 
 //----------------------------------------------------------------------
