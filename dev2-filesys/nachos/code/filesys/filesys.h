@@ -137,7 +137,8 @@ class OpenFileTable {
 		void DecrementCount();
 
 		// Files and table access
-		bool FindFile(int sector);
+		int FindFile(int sector);
+		FileHandle* GetFile(int index);
 
 		// Add a file to the table
 		bool AddFile(FileHandle* file);

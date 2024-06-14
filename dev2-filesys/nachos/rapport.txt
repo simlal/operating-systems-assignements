@@ -1,0 +1,46 @@
+Partie A: Structure de répertoire
+
+Pour permettre la création de sous répertoire, il est nécessaire de pouvoir différencier
+un fichier d'un répertoire. Pour cela, j'ai ajouté un bool isDirectory dans la création de fichier.
+J'ai également fait une fonction pour le Find. J'ai également inclut lors du Create 
+2 entrées de répertoire pour le nouveau répertoire:
+- "." qui pointe vers lui même (le secteur du répertoire courant)
+- ".." qui pointe vers le répertoire parent (le secteur du répertoire parent)
+
+Pour implémenter la notion de répertoire courant, j'ai ajouter le champ cdSector
+dans le système de fichier. Lors de l'initialisation, le répertoire courant est le répertoire racine.
+Ainsi, lorsqu'on fait un cd, on vérifie si le répertoire existe et on change le répertoire courant.
+
+
+Il a fallu faire les ajustements nécessaires pour toutes les opérations de fileSystem
+qui utilisaient le répertoire racine en remplacant par le répertoire courant.
+
+
+Partie B: Table des fichiers ouverts
+J'ai utilisé une table de fichiers ouverts pour gérer les fichiers ouverts avec 1 seul niveau.
+Donc pas de gestion de la concurrence. Nous avons 2 nouvelles classes:
+- FileHandle qui est comme un wrapper de OpenFile avec plus d'informations et de fonctions.
+- OpenFileTable qui est une table de FileHandle.
+
+Le FileHandle nous permet d'aller chercher le OpenFile ainsi que conserver les informations
+nécessaires pour la gestion des fichiers ouverts (le nom, le statut d'écriture, le secteur, etc.)
+Nous pouvons ainsi faire des opérations sur les fichiers ouverts sans avoir à les ouvrir à chaque fois,
+on peut utiliser directement le FileHandle. On utilisera les attributs pour savoir
+l'état du fichier dans la table de fichier ouverts et faire diverses manipulations.
+
+Pour la table des fichiers ouverts, j'ai utilisé un tableau de FileHandle de taille fixe (10).
+J'ai ajouté des fonctions pour ajouter un fichier, enlever un fichier, trouver un fichier
+et des appels pour les RemoveAll/TouchOpenedFiles. Il y a certains cas limites qui sont gérés:
+- Si on veut ouvrir un fichier qui est déjà ouvert, on retourne le FileHandle existant et on 
+    incrémente le nombre d'ouvertures.
+- Si le fichier n'existe pas, on retourne NULL.
+- Si on veut ouvrir un fichier et qu'il n'y a plus de place dans la table, on retourne NULL.
+- si un fichier est deja ouvert, on incremente le nombre d'ouvertures.
+- Si on ferme un fichier, on décrémente le nombre d'ouvertures et on le ferme si le nombre est à 0.
+- Impossible de supprimer un fichier ouvert.
+
+J'ai également ajuster les appels de read/write a partir du FileHandle afin de 
+d'utiliser le OpenFile associée, fait le pont entre les appels de FileSystem et 
+de la table des fichiers ouverts.
+
+Je n'ai malheureusement pas pu tester la table puisque  les test de hierarchie ne fonctionnent pas.

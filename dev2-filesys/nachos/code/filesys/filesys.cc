@@ -281,16 +281,25 @@ void OpenFileTable::DecrementCount()
 // OpenFileTable::FindFile
 //  Find a file in the table
 //----------------------------------------------------------------------
-bool OpenFileTable::FindFile(int sector)
+int OpenFileTable::FindFile(int sector)
 {
     for (int i = 0; i < OpenFileTableSize; i++)
     {
         if (table[i]->GetUseCount() > 0 && table[i]->GetSector() == sector)
         {
-            return TRUE;
+            return i;
         }
     }
-    return FALSE;
+    return -1;
+}
+
+//----------------------------------------------------------------------
+// OpenFileTable::GetFile
+//  Get a file from the table
+//----------------------------------------------------------------------
+FileHandle* OpenFileTable::GetFile(int index)
+{
+    return table[index];
 }
 
 //----------------------------------------------------------------------
@@ -299,6 +308,12 @@ bool OpenFileTable::FindFile(int sector)
 //----------------------------------------------------------------------
 bool OpenFileTable::AddFile(FileHandle* file)
 {
+    // Table Pleine
+    if (count >= OpenFileTableSize)
+    {
+        return FALSE;
+    }
+
     for (int i = 0; i < OpenFileTableSize; i++)
     {
         if (table[i] == NULL)
@@ -601,18 +616,32 @@ FileHandle* FileSystem::Open(char *name)
             return NULL;
         }
     }
-
-    // Check if the file is already open
-    if (openFileTable->FindFile(sector))
+    else
     {
         delete cdir;
         delete cdirFile;
-        return NULL;
+        return NULL;  // file not found 
     }
 
+    // Check if the file is already open
+    int fileIndex = openFileTable->FindFile(sector);
+    if (fileIndex != -1)
+    {
+        FileHandle* fileHandle = openFileTable->GetFile(fileIndex);
+        fileHandle->IncrementUseCount();
+        delete cdir;
+        delete cdirFile;
+        return fileHandle;
+    }
+    
     // Add the file to the open file table
     FileHandle* fileHandle = new FileHandle(name, TRUE, openFile);
-    openFileTable->AddFile(fileHandle);
+    if (!openFileTable->AddFile(fileHandle))
+    {
+        delete cdir;
+        delete cdirFile;
+        return NULL;  // Table is full
+    }
 	
 	delete cdir;
     delete cdirFile;
