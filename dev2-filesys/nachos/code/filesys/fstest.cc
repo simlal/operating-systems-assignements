@@ -200,8 +200,6 @@ DirectoryTest()
 	//Changmeent de repertoire
 	fileSystem->ChangeDirectory("Simpsons");
 	fileSystem->List();
-	// fileSystem->Print();
-	return;
 
 	//Creation de fichiers dans sous-repertoire
 	Copy("big","Homer");

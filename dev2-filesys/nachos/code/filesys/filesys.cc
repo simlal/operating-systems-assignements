@@ -151,40 +151,258 @@ FileSystem::FileSystem(bool format)
     }
     // Set the current directory to root at the beginning
     cdSector = DirectorySector;
+
+    // Create the OpenFileTable
+    openFileTable = new OpenFileTable();
 }
 
-//IFT320
-
-int FileSystem::Read(FileHandle file, char *into, int numBytes) {	
-	return file->Read(into,numBytes);
+//----------------------------------------------------------------------
+// FileHandle::FileHandle
+// 	Constructor for FileHandle
+//----------------------------------------------------------------------
+FileHandle::FileHandle(char* name, bool writeable, OpenFile* file)
+{
+    this->name = name;
+    this->writeable = writeable;
+    this->file = file;
+    this->position = 0; // start at the beginning of the file
+    this->useCount = 1; // start with one user
 }
 
-int FileSystem::Write(FileHandle file, char *from, int numBytes) {		
-	return file->Write(from,numBytes);
+//----------------------------------------------------------------------
+// FileHandle::~FileHandle
+// 	Destructor for FileHandle
+//----------------------------------------------------------------------
+FileHandle::~FileHandle()
+{
+    delete file;
 }
 
-int FileSystem::ReadAt(FileHandle file, char *into, int numBytes,int position) {
-	return file->ReadAt(into,numBytes,position);
+//----------------------------------------------------------------------
+// FileHandle::GetOpenFile
+// Pointer to the OpenFile object
+OpenFile* FileHandle::GetOpenFile()
+{
+    return file;
 }
 
-int FileSystem::WriteAt(FileHandle file, char *from, int numBytes,int position) {
-	return file->WriteAt(from,numBytes,position);
+//----------------------------------------------------------------------
+// FileHandle::GetSector
+// 	Return the sector of the file
+//----------------------------------------------------------------------
+int FileHandle::GetSector()
+{
+    return sector;
+}
+
+//----------------------------------------------------------------------
+// FileHandle::GetUseCount
+// 	Return the useCount of the file
+//----------------------------------------------------------------------
+int FileHandle::GetUseCount()
+{
+    return useCount;
+}
+//----------------------------------------------------------------------
+// FileHandle::SetUseCount
+// 	Set the useCount of the file
+//----------------------------------------------------------------------
+int FileHandle::SetUseCount(int count)
+{
+    useCount = count;
+}
+
+//----------------------------------------------------------------------
+// FileHandle::IncrementUseCount
+// 	Increment the useCount of the file
+//----------------------------------------------------------------------
+void FileHandle::IncrementUseCount()
+{
+    useCount++;
+}
+
+//----------------------------------------------------------------------
+// FileHandle::DecrementUseCount
+// 	Decrement the useCount of the file
+//----------------------------------------------------------------------
+void FileHandle::DecrementUseCount()
+{
+    useCount--;
+}
+
+//----------------------------------------------------------------------
+// FileHandle::IsWriteable
+// 	Return the writeable status of the file
+bool FileHandle::IsWriteable()
+{
+    return writeable;
 }
 
 
-void FileSystem::Close (FileHandle file){
-	delete file;
+//----------------------------------------------------------------------
+// OpenFileTable::OpenFileTable
+//  Constructor for OpenFileTable
+//  Maximum of 10 files
+//----------------------------------------------------------------------
+OpenFileTable::OpenFileTable()
+{
+    table = new FileHandle*[10];  // array of FileHandle pointers
+    count = 0;
+}
+OpenFileTable::~OpenFileTable()
+{
+    for (int i = 0; i < count; i++)
+    {
+        delete table[i];
+    }
+    delete[] table;
+}
+
+//----------------------------------------------------------------------
+// OpenFileTable::IncrementCount
+//  Increment the count of open files
+//----------------------------------------------------------------------
+void OpenFileTable::IncrementCount()
+{
+    count++;
+}
+
+//----------------------------------------------------------------------
+// OpenFileTable::DecrementCount
+//  Decrement the count of open files
+//----------------------------------------------------------------------
+void OpenFileTable::DecrementCount()
+{
+    count--;
+}
+
+
+//----------------------------------------------------------------------
+// OpenFileTable::FindFile
+//  Find a file in the table
+//----------------------------------------------------------------------
+bool OpenFileTable::FindFile(int sector)
+{
+    for (int i = 0; i < OpenFileTableSize; i++)
+    {
+        if (table[i]->GetUseCount() > 0 && table[i]->GetSector() == sector)
+        {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+//----------------------------------------------------------------------
+// OpenFileTable::AddFile
+//  Add a file to the table
+//----------------------------------------------------------------------
+bool OpenFileTable::AddFile(FileHandle* file)
+{
+    for (int i = 0; i < OpenFileTableSize; i++)
+    {
+        if (table[i] == NULL)
+        {
+            table[i] = file;
+            count++;
+            return TRUE;
+        }
+        // Multiple opens of the same file
+        else if (table[i]->GetOpenFile() == file->GetOpenFile())
+        {
+            table[i]->IncrementUseCount();
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+//----------------------------------------------------------------------
+// OpenFileTable::RemoveFile
+//  Remove a file from the table
+//----------------------------------------------------------------------
+bool OpenFileTable::RemoveFile(FileHandle* file)
+{
+    for (int i = 0; i < OpenFileTableSize; i++)
+    {
+        if (table[i] == file)
+        {
+            if (table[i]->GetUseCount() > 1)
+            {
+                table[i]->DecrementUseCount();
+                return TRUE;
+            }
+            delete table[i];
+            table[i] = NULL;
+            count--;
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+//----------------------------------------------------------------------
+// OpenFileTable::RemoveAllFiles
+//  Remove all files from the table
+//----------------------------------------------------------------------
+bool OpenFileTable::RemoveAllFiles()
+{
+    for (int i = 0; i < OpenFileTableSize; i++)
+    {
+        // Remove the file from the table or decrement the use count
+        if (table[i]->GetUseCount() > 1)
+        {
+            table[i]->SetUseCount(0);
+            delete table[i];
+            table[i] = NULL;
+        }
+    }
+    count = 0;
+    return TRUE;
+}
+
+//----------------------------------------------------------------------
+// OpenFileTable::TouchWriteableFiles
+//  Touch all writeable files
+//----------------------------------------------------------------------
+void OpenFileTable::TouchWriteableFiles(char* modif)
+{
+    for (int i = 0; i < OpenFileTableSize; i++)
+    {
+        if (table[i]->GetUseCount() > 0 && table[i]->IsWriteable())
+        {
+            table[i]->GetOpenFile()->WriteAt(modif, strlen(modif), 0);
+        }
+    }
+}
+
+
+int FileSystem::Read(FileHandle* file, char *into, int numBytes) {	
+	return file->GetOpenFile()->Read(into,numBytes);
+}
+
+int FileSystem::Write(FileHandle* file, char *from, int numBytes) {		
+	return file->GetOpenFile()->Write(from,numBytes);
+}
+
+int FileSystem::ReadAt(FileHandle* file, char *into, int numBytes,int position) {
+	return file->GetOpenFile()->ReadAt(into,numBytes,position);
+}
+
+int FileSystem::WriteAt(FileHandle* file, char *from, int numBytes,int position) {
+	return file->GetOpenFile()->WriteAt(from,numBytes,position);
+}
+
+
+void FileSystem::Close (FileHandle* file){
+    openFileTable->RemoveFile(file);  
 }
 void FileSystem::CloseAll(){
-	//IFT320: Partie B
-	printf("!!CloseAll non implemente!!\n");
-	ASSERT(FALSE);
+    openFileTable->RemoveAllFiles();
 }
 
 void FileSystem::TouchOpenedFiles(char * modif){
-	//IFT320: Partie B
-	printf("!!TouchOpenedFiles non implemente!!\n");
-	ASSERT(FALSE);
+    openFileTable->TouchWriteableFiles(modif);
 }
 
 
@@ -361,11 +579,11 @@ bool FileSystem::Create(char *name, int initialSize, bool isDirectory)
 //	"name" -- the text name of the file to be opened
 //----------------------------------------------------------------------
 
-FileHandle FileSystem::Open(char *name)
+FileHandle* FileSystem::Open(char *name)
 { 
     Directory* cdir = new Directory(NumDirEntries);
     OpenFile* cdirFile = new OpenFile(cdSector);
-    OpenFile *openFile = NULL;
+    OpenFile* openFile = NULL;
     int sector;	
 	
 
@@ -373,13 +591,32 @@ FileHandle FileSystem::Open(char *name)
 	
     cdir->FetchFrom(cdirFile);
     sector = cdir->Find(name); 
-    if (sector >= 0) {		
-		openFile = new OpenFile(sector);	// name was found in directory 	
+    if (sector >= 0 && cdir->FindDirectory(name) == -1) {		
+		openFile = new OpenFile(sector);	// filename was found in directory 	
+        // Safety check for bad sector
+        if (openFile == NULL)
+        {
+            delete cdir;
+            delete cdirFile;
+            return NULL;
+        }
     }
+
+    // Check if the file is already open
+    if (openFileTable->FindFile(sector))
+    {
+        delete cdir;
+        delete cdirFile;
+        return NULL;
+    }
+
+    // Add the file to the open file table
+    FileHandle* fileHandle = new FileHandle(name, TRUE, openFile);
+    openFileTable->AddFile(fileHandle);
 	
 	delete cdir;
     delete cdirFile;
-    return openFile;				// return NULL if not found
+    return fileHandle;				// return NULL if not found
 }
 
 //----------------------------------------------------------------------

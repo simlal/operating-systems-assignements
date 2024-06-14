@@ -90,9 +90,67 @@ class FileSystem {
 #else // FILESYS
 //IFT320: DEFINITION DE FILESYSTEM UTILISEE POUR LE TP2
 
-//IFT320: la poignee de fichier est presentement un OpenFile. Devrait changer (Partie B).
-#define FileHandle OpenFile *
+// FileHandle wrapper around an OpenFile
+class FileHandle {
+	private:
+		char* name;
+		int sector;
+		bool writeable;
+		OpenFile* file;
+		int position;
+		int useCount;
+		
+	public:
+		// Constructor/Destructor around an OpenFile
+		FileHandle(char* name, bool readOnly, OpenFile* file);
+		~FileHandle();
+		
+		// To pass the read/write calls to the OpenFile
+		OpenFile* GetOpenFile();
 
+		// The location of the file on disk
+		int GetSector();
+
+		// useCount for number of concurrent users
+		int GetUseCount();
+		int SetUseCount(int count);
+		void IncrementUseCount();
+		void DecrementUseCount();
+
+		// Writeable status
+		bool IsWriteable();
+};
+
+
+#define OpenFileTableSize 10
+class OpenFileTable {
+	private:
+		FileHandle** table;  // pointer to an array of FileHandle pointers
+		int count; // Number of files in the table
+		
+	public:
+		OpenFileTable();  // Maximum of 10 files
+		~OpenFileTable();
+		
+		// Modify the count of open files
+		void IncrementCount();
+		void DecrementCount();
+
+		// Files and table access
+		bool FindFile(int sector);
+
+		// Add a file to the table
+		bool AddFile(FileHandle* file);
+
+		// Remove a file from the table
+		bool RemoveFile(FileHandle* file);
+
+		// Remove all files
+		bool RemoveAllFiles();
+
+		// Touch all writeable files
+		void TouchWriteableFiles(char* modif);
+};
 
 class FileSystem {
   public:
@@ -116,14 +174,14 @@ class FileSystem {
 	
 	//IFT320: Services du systeme de fichiers.
 	
-	FileHandle Open(char *name); 		
+	FileHandle* Open(char *name); 		
 	bool ChangeDirectory(char* name);
 	bool CreateDirectory(char* name);
-	int Read(FileHandle file, char *into, int numBytes);
-	int Write(FileHandle file, char *from, int numBytes);
-	int ReadAt(FileHandle file, char *into, int numBytes,int position);
-	int WriteAt(FileHandle file, char *from, int numBytes,int position);
-	void Close (FileHandle file);
+	int Read(FileHandle* file, char *into, int numBytes);
+	int Write(FileHandle* file, char *from, int numBytes);
+	int ReadAt(FileHandle* file, char *into, int numBytes,int position);
+	int WriteAt(FileHandle* file, char *from, int numBytes,int position);
+	void Close (FileHandle* file);
 	void CloseAll();
 	void TouchOpenedFiles(char * modif);
 	void CdInfo(); // Print cd info for debugging
@@ -138,6 +196,9 @@ class FileSystem {
 
 	// Sector num of the currently opened directory
 	int cdSector;
+
+	// OpenFileTable
+	OpenFileTable* openFileTable;
 };
 
 
