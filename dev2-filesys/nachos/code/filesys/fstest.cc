@@ -32,7 +32,7 @@ void
 Copy(char *from, char *to)
 {
     FILE *fp;
-    FileHandle openFile;
+    FileHandle* openFile;
     int amountRead, fileLength;
     char *buffer;
 
@@ -79,13 +79,13 @@ Copy(char *from, char *to)
 void
 Print(char *name)
 {
-    FileHandle openFile;    
+    FileHandle* openFile;    
     int i, amountRead;
     char *buffer;
 
 	//IFT320: a modifier lorsque FileHandle change de type
 	
-    if ((openFile = fileSystem->Open(name)) < 0) {
+    if ((openFile = fileSystem->Open(name)) == NULL) {
 	printf("Print: unable to open file %s\n", name);
 	return;
     }
@@ -120,7 +120,7 @@ Print(char *name)
 static void 
 FileWrite()
 {
-    FileHandle openFile;    
+    FileHandle* openFile;    
     int i, numBytes;
 
     printf("Sequential write of %d byte file, in %d byte chunks\n", 
@@ -148,7 +148,7 @@ FileWrite()
 static void 
 FileRead()
 {
-    FileHandle openFile;    
+    FileHandle* openFile;    
     char *buffer = new char[ContentSize];
     int i, numBytes;
 
@@ -340,7 +340,7 @@ TabSysTest()
     fileSystem->ChangeDirectory("..");
 	fileSystem->ChangeDirectory("Simpsons");
 	
-	FileHandle f4 = fileSystem->Open("Maggie");
+	FileHandle* f4 = fileSystem->Open("Maggie");
 	//-------------------------------------------------------------------
 	// On va dans le repertoire parent de Simpsons
     fileSystem->ChangeDirectory("..");	

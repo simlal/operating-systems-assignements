@@ -240,6 +240,46 @@ bool FileHandle::IsWriteable()
 
 
 //----------------------------------------------------------------------
+// FileHandle::Read
+// 	Read the file
+//----------------------------------------------------------------------
+int FileHandle::Read(char *into, int numBytes)
+{
+    return file->Read(into, numBytes);
+}
+
+//----------------------------------------------------------------------
+// FileHandle::Write
+// 	Write to the file
+//----------------------------------------------------------------------
+int FileHandle::Write(char *from, int numBytes)
+{
+    return file->Write(from, numBytes);
+}
+
+//----------------------------------------------------------------------
+// FileHandle::ReadAt
+//     Read the file at a specific position
+//----------------------------------------------------------------------
+int FileHandle::ReadAt(char *into, int numBytes, int position)
+{
+    return file->ReadAt(into, numBytes, position);
+}
+
+//----------------------------------------------------------------------
+// FileHandle::WriteAt
+//     Write to the file at a specific position
+//----------------------------------------------------------------------
+int FileHandle::WriteAt(char *from, int numBytes, int position)
+{
+    return file->WriteAt(from, numBytes, position);
+}
+
+
+//-------------------------###############################################-------------------------
+
+
+//----------------------------------------------------------------------
 // OpenFileTable::OpenFileTable
 //  Constructor for OpenFileTable
 //  Maximum of 10 files
@@ -393,19 +433,19 @@ void OpenFileTable::TouchWriteableFiles(char* modif)
 
 
 int FileSystem::Read(FileHandle* file, char *into, int numBytes) {	
-	return file->GetOpenFile()->Read(into,numBytes);
+	return file->Read(into,numBytes);
 }
 
 int FileSystem::Write(FileHandle* file, char *from, int numBytes) {		
-	return file->GetOpenFile()->Write(from,numBytes);
+	return file->Write(from,numBytes);
 }
 
 int FileSystem::ReadAt(FileHandle* file, char *into, int numBytes,int position) {
-	return file->GetOpenFile()->ReadAt(into,numBytes,position);
+	return file->ReadAt(into,numBytes,position);
 }
 
 int FileSystem::WriteAt(FileHandle* file, char *from, int numBytes,int position) {
-	return file->GetOpenFile()->WriteAt(from,numBytes,position);
+	return file->WriteAt(from,numBytes,position);
 }
 
 
@@ -477,7 +517,7 @@ bool FileSystem::ChangeDirectory(char* name)
 //----------------------------------------------------------------------
 bool FileSystem::CreateDirectory(char* name)
 {
-    return Create(name, NumDirEntries, TRUE);
+    return Create(name, DirectoryFileSize, TRUE);
 }
 
 

@@ -117,6 +117,12 @@ class FileHandle {
 		void IncrementUseCount();
 		void DecrementUseCount();
 
+		// OpenFile wrapper for read/write
+		int Read(char *into, int numBytes);
+		int Write(char *from, int numBytes);
+		int ReadAt(char *into, int numBytes, int position);
+		int WriteAt(char *from, int numBytes, int position);
+
 		// Writeable status
 		bool IsWriteable();
 };
@@ -178,10 +184,16 @@ class FileSystem {
 	FileHandle* Open(char *name); 		
 	bool ChangeDirectory(char* name);
 	bool CreateDirectory(char* name);
+	/**
+	 *! I used obj instead of pointer to avoid compiler error:
+	 *! /userprog/addrspace.cc:113:50: error: no matching function for call to
+	 *! ‘FileSystem::ReadAt(FileHandle&, char*, int&, int&)’
+	 */
 	int Read(FileHandle* file, char *into, int numBytes);
 	int Write(FileHandle* file, char *from, int numBytes);
 	int ReadAt(FileHandle* file, char *into, int numBytes,int position);
 	int WriteAt(FileHandle* file, char *from, int numBytes,int position);
+
 	void Close (FileHandle* file);
 	void CloseAll();
 	void TouchOpenedFiles(char * modif);

@@ -25,7 +25,7 @@ StartProcess(char *filename)
 {
 	//IFT320: modifie pour fonctionner avec FileHandle
 
-    FileHandle executable = fileSystem->Open(filename);
+    FileHandle* executable = fileSystem->Open(filename);
     AddrSpace *space;
 
     if (executable == NULL) {
