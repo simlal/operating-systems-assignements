@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo ------------Exit Test-----------
+
+nachos -x ../test_tp3/ExitTest
+

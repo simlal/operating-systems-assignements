@@ -1,0 +1,6 @@
+#!/bin/csh
+
+echo ------------Round Robin Test-----------
+
+nachos -a 1 -x ../test_tp3/RobinTest -d l 
+
