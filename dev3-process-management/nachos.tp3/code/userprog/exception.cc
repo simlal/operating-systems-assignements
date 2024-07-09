@@ -159,38 +159,73 @@ void ExceptionHandler(ExceptionType which)
 	int size;
 	OpenFileId handle;
 	
-    if ((which == SyscallException)) {
-	
-		//Recupere le code de l'appel systeme (SC_??? defini dans syscall.h)
-		int type = machine->ReadRegister(2);
-		
-		switch(type){
+    switch(which)
+	{
+		case SyscallException:
+		{
+			// Get the SC code
+			int type = machine->ReadRegister(2);
 			
-			case SC_Halt:
-				printf("Shutdown, initiated by user program.\n");
-				interrupt->Halt();
-						
-			case SC_Exit: {
-				int exitCode = machine->ReadRegister(4);
-				SysCallExit(exitCode);
-				break;
+			switch(type)
+			{
+				case SC_Halt:
+				{
+					printf("Shutdown, initiated by user program.\n");
+					interrupt->Halt();
+					break;
+				}			
+				case SC_Exit: 
+				{
+					int exitCode = machine->ReadRegister(4);
+					SysCallExit(exitCode);
+					break;
+				}
+				default:
+				{
+					printf("Unrecognized Syscall type: %d.\n",type);				
+					ASSERT(FALSE);
+				}
 			}
-				
-
-			default:				
-				printf("Unrecognized Syscall type: %d.\n",type);				
-				ASSERT(FALSE);
-		}		
+		}
+		// Deal with non syscall exeptions
+		case PageFaultException:
+		{
+			printf("Fatal Error: PageFaultException (ExceptionType=%d). Exiting...\n", which);
+			SysCallExit(-1);
+			break;
+		}
+		// Shutdown memory related errors
+		case ReadOnlyException:
+		case BusErrorException:
+		case AddressErrorException:
+		{
+			printf("Illegal Memory Access: ExceptionType=%d.\n", which);
+			SysCallExit(-1);
+			break;
+		}
+		case OverflowException:
+		{
+			printf("Overflow Error: ExceptionType=%d. Be careful!\n", which);
+			break;
+		}
+		case IllegalInstrException:
+		{
+			printf("Illegal Instruction: ExceptionType=%d.\n", which);
+			SysCallExit(-1);
+			break;
+		}
+		case NoException:
+		{
+			printf("Fatal Error, probable memory corruption (ExceptionType=%d).\n", which);
+			SysCallExit(-1);
+			break;
+		}
+		default:
+		{
+			printf("Unexpected user mode exception %d\n", which);
+			ASSERT(FALSE);			
+		}
     } 
-
-	//0-Traitement des erreurs de programme. 
-	//C'est ici que vous avez ENFIN le plaisir de dispenser des Segmentation Fault
-	//aux processus pleins de bugs.
-	//Verifiable avec la commande terror
-	else {
-		printf("Unexpected user mode exception %d\n", which);
-		ASSERT(FALSE);
-    }
 }
 
 
