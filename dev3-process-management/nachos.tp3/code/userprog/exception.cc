@@ -147,6 +147,8 @@ int SysCallJoin(SpaceId id);
 //	"which" is the kind of exception.  The list of possible exceptions 
 //	is in machine.h.
 //----------------------------------------------------------------------
+// #include "machine.h"
+// Machine* machine;
 
 void ExceptionHandler(ExceptionType which)
 {
@@ -168,7 +170,13 @@ void ExceptionHandler(ExceptionType which)
 				printf("Shutdown, initiated by user program.\n");
 				interrupt->Halt();
 						
-			
+			case SC_Exit: {
+				int exitCode = machine->ReadRegister(4);
+				SysCallExit(exitCode);
+				break;
+			}
+				
+
 			default:				
 				printf("Unrecognized Syscall type: %d.\n",type);				
 				ASSERT(FALSE);
@@ -187,8 +195,8 @@ void ExceptionHandler(ExceptionType which)
 
 
 
-void incrementPC(){
-
+void incrementPC()
+{
 	int pc;
 	
 	pc=machine->ReadRegister(PCReg);
@@ -204,9 +212,8 @@ void incrementPC(){
 
 void SysCallExit(int code){
 
-	printf("Unimplemented system call...");
-	ASSERT(FALSE);
-	
+	printf("Exiting process with exit code: %d\n", code);
+	currentThread->Finish();
 }
 
 
