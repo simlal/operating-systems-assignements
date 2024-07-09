@@ -180,9 +180,27 @@ void ExceptionHandler(ExceptionType which)
 					SysCallExit(exitCode);
 					break;
 				}
+				case SC_Write:
+				{
+					userbuffer = machine->ReadRegister(4);
+					size = machine->ReadRegister(5);
+					handle = machine->ReadRegister(6);
+					// Write to log/ConsoleOutput
+					if (handle == 1)
+					{
+						SysCallLogWrite(userbuffer, size);
+					}
+					else
+					{
+						printf("Unimplemented write destination in sys call...");
+						ASSERT(FALSE);
+					}
+					break;
+
+				}
 				default:
 				{
-					printf("Unrecognized Syscall type: %d.\n",type);				
+					printf("Unrecognized Syscall type: %d.\n", type);				
 					ASSERT(FALSE);
 				}
 			}
@@ -252,26 +270,71 @@ void SysCallExit(int code){
 }
 
 
-
-void CopyFromUser(VirtualAddress userBufferSource, KernelAddress kernelBufferDestination,int size)
+// Known size copy from user to kernel
+void CopyFromUser(VirtualAddress userBufferSource, KernelAddress kernelBufferDestination, int size)
 {	
-	printf("Unimplemented function...");
-	ASSERT(FALSE);
+	Word32 word;
+	int i;
+
+	if (size <= 0)
+	{
+		printf("Error: CopyFromUser called with size <= 0.\n");
+		SysCallExit(-1);
+	}
+	
+	for(i = 0; i < size; i++)
+	{
+		bool success = machine->ReadMem(userBufferSource + i, 1, &word.intVal);
+		if(!success)
+		{
+			printf("Error reading memory from user space.\n");
+			SysCallExit(-1);
+		}
+		kernelBufferDestination[i] = word.charVal[0];
+		if(word.charVal[0] == '\0')
+			break;
+	}	
 }
 
-
-void SysCallLogWrite(VirtualAddress userBufferSource, int size){
-
-	printf("Unimplemented system call...");
-	ASSERT(FALSE);
-
+// Log write syscall
+void SysCallLogWrite(VirtualAddress userBufferSource, int size) 
+{
+	// Temp kernel buffer and copy user to it
+	KernelAddress kernelBufferDestination = new char[size];
+    CopyFromUser(userBufferSource, kernelBufferDestination, size);
+    
+	
+	// Write to log/stdout
+	for(int i = 0; i < size; i++)
+	{
+		printf("%c", kernelBufferDestination[i]);
+	}
+	
+	// Free temp buffer and return control to user
+	delete[] kernelBufferDestination;
+	incrementPC();
 }
 
-
-void CopyFromUser(VirtualAddress userBufferSource, KernelAddress kernelBufferDestination){
-
-	printf("Unimplemented function...");
-	ASSERT(FALSE);
+// Unknown size copy from user to kernel
+void CopyFromUser(VirtualAddress userBufferSource, KernelAddress kernelBufferDestination)
+{
+	Word32 word;
+	int i;
+	
+	while (true)
+	{
+		bool success = machine->ReadMem(userBufferSource, 1, &word.intVal);
+		if(!success)
+		{
+			printf("Error reading memory from user space.\n");
+			SysCallExit(-1);
+		}
+		kernelBufferDestination[i] = word.charVal[0];
+		if(word.charVal[0] == '\0')
+			break;
+		userBufferSource++;
+		i++;
+	}
 }
 
 
