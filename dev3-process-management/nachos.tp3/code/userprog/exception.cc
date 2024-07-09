@@ -198,6 +198,12 @@ void ExceptionHandler(ExceptionType which)
 					break;
 
 				}
+				case SC_Create:
+				{
+					name = machine->ReadRegister(4);
+					SysCallCreate(name);
+					break;
+				}
 				default:
 				{
 					printf("Unrecognized Syscall type: %d.\n", type);				
@@ -320,30 +326,39 @@ void SysCallLogWrite(VirtualAddress userBufferSource, int size)
 void CopyFromUser(VirtualAddress userBufferSource, KernelAddress kernelBufferDestination)
 {
 	Word32 word;
-	int i;
+	int i = 0;
 	
-	while (true)
+	while (i < MAX_FILENAME_LENGTH - 1)
 	{
+		// In case
+		
 		bool success = machine->ReadMem(userBufferSource, 1, &word.intVal);
 		if(!success)
 		{
 			printf("Error reading memory from user space.\n");
 			SysCallExit(-1);
 		}
+		// Copy until null or advance in userBuffer
 		kernelBufferDestination[i] = word.charVal[0];
-		if(word.charVal[0] == '\0')
+		if (word.charVal[0] == '\0')
+		{
 			break;
+		}
 		userBufferSource++;
 		i++;
 	}
 }
+// Create file syscall
+void SysCallCreate(VirtualAddress fileName)
+{
+	// Retrieve the fileName
+	KernelAddress kernelBufferDestination = new char[MAX_FILENAME_LENGTH];
+	CopyFromUser(fileName, kernelBufferDestination);
 
-
-void SysCallCreate(VirtualAddress fileName){
-	
-	printf("Unimplemented system call...");
-	ASSERT(FALSE);
-
+	// Create the file, free and return to user
+	fileSystem->Create(kernelBufferDestination, 0);
+	delete[] kernelBufferDestination;
+	incrementPC();
 }
 
 
