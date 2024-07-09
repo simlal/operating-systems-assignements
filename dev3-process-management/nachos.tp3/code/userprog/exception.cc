@@ -205,6 +205,7 @@ void ExceptionHandler(ExceptionType which)
 				}
 			}
 		}
+		break;
 		// Deal with non syscall exeptions
 		case PageFaultException:
 		{
