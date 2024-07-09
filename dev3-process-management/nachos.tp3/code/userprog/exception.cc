@@ -174,12 +174,14 @@ void ExceptionHandler(ExceptionType which)
 					interrupt->Halt();
 					break;
 				}			
+				
 				case SC_Exit: 
 				{
 					int exitCode = machine->ReadRegister(4);
 					SysCallExit(exitCode);
 					break;
 				}
+				
 				case SC_Write:
 				{
 					userbuffer = machine->ReadRegister(4);
@@ -198,12 +200,21 @@ void ExceptionHandler(ExceptionType which)
 					break;
 
 				}
+				
 				case SC_Create:
 				{
 					name = machine->ReadRegister(4);
 					SysCallCreate(name);
 					break;
 				}
+
+				case SC_Open:
+				{
+					name = machine->ReadRegister(4);
+					SysCallOpen(name);
+					break;
+				}
+
 				default:
 				{
 					printf("Unrecognized Syscall type: %d.\n", type);				
@@ -219,6 +230,7 @@ void ExceptionHandler(ExceptionType which)
 			SysCallExit(-1);
 			break;
 		}
+
 		// Shutdown memory related errors
 		case ReadOnlyException:
 		case BusErrorException:
@@ -228,23 +240,27 @@ void ExceptionHandler(ExceptionType which)
 			SysCallExit(-1);
 			break;
 		}
+
 		case OverflowException:
 		{
 			printf("Overflow Error: ExceptionType=%d. Be careful!\n", which);
 			break;
 		}
+
 		case IllegalInstrException:
 		{
 			printf("Illegal Instruction: ExceptionType=%d.\n", which);
 			SysCallExit(-1);
 			break;
 		}
+
 		case NoException:
 		{
 			printf("Fatal Error, probable memory corruption (ExceptionType=%d).\n", which);
 			SysCallExit(-1);
 			break;
 		}
+
 		default:
 		{
 			printf("Unexpected user mode exception %d\n", which);
@@ -348,6 +364,7 @@ void CopyFromUser(VirtualAddress userBufferSource, KernelAddress kernelBufferDes
 		i++;
 	}
 }
+
 // Create file syscall
 void SysCallCreate(VirtualAddress fileName)
 {
@@ -361,11 +378,27 @@ void SysCallCreate(VirtualAddress fileName)
 	incrementPC();
 }
 
+// #include "filesys.h"
+// FileSystem* fileSystem;
+// Retrieve the openFileId
+OpenFileId SysCallOpen(VirtualAddress fileName)
+{
+	// Retrieve the fileName
+	KernelAddress kernelBufferDestination = new char[MAX_FILENAME_LENGTH];
+	CopyFromUser(fileName, kernelBufferDestination);
 
-OpenFileId SysCallOpen(VirtualAddress fileName){
+	OpenFile* openFile = fileSystem->Open(kernelBufferDestination);
+	if (openFile == NULL)
+	{
+		printf("Could not open file %s\n.", kernelBufferDestination);
+		delete[] kernelBufferDestination;
+		return -1;
+	}
 
-	printf("Unimplemented system call...");
-	ASSERT(FALSE);
+	// File open successful, return the OpenFileId
+	//TODO "CONVERT" openFile PTR to OpenFileId
+	incrementPC();
+	return 0;
 }
 
 
