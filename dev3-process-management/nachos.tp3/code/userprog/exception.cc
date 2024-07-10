@@ -194,8 +194,7 @@ void ExceptionHandler(ExceptionType which)
 					}
 					else
 					{
-						printf("Unimplemented write destination in sys call...");
-						ASSERT(FALSE);
+						SysCallWrite(handle, userbuffer, size);
 					}
 					break;
 
@@ -379,8 +378,10 @@ void SysCallCreate(VirtualAddress fileName)
 }
 
 // #include "filesys.h"
+// #include "machine.h"
+// Machine* machine;
 // FileSystem* fileSystem;
-// Retrieve the openFileId
+// Retrieve the openFileId from the fileSystem
 OpenFileId SysCallOpen(VirtualAddress fileName)
 {
 	// Retrieve the fileName
@@ -392,21 +393,39 @@ OpenFileId SysCallOpen(VirtualAddress fileName)
 	{
 		printf("Could not open file %s\n.", kernelBufferDestination);
 		delete[] kernelBufferDestination;
+		machine->WriteRegister(2, -1);
 		return -1;
 	}
 
 	// File open successful, return the OpenFileId
-	//TODO "CONVERT" openFile PTR to OpenFileId
 	incrementPC();
-	return 0;
+	machine->WriteRegister(2, reinterpret_cast<OpenFileId>(openFile));
+	return reinterpret_cast<OpenFileId>(openFile);
 }
 
 
-void SysCallWrite(OpenFileId fileDestination,VirtualAddress userBufferSource, int size){
+void SysCallWrite(OpenFileId fileDestination,VirtualAddress userBufferSource, int size)
+{
+	// Retrieve the fileDestination
+	OpenFile* openFile = reinterpret_cast<OpenFile*>(fileDestination);
+	if (openFile == NULL)
+	{
+		printf("Error: SysCallWrite called with invalid fileDestination.\n");
+		SysCallExit(-1);
+	}
 
-	printf("Unimplemented system call...");
-	ASSERT(FALSE);
+	// Copy user buffer to kernel buffer
+	KernelAddress kernelBuffer = new char[size];
+	CopyFromUser(userBufferSource, kernelBuffer, size);
 
+	// Write to file
+	int bytesWritten = openFile->Write(kernelBuffer, size);
+	if (bytesWritten < size)
+	{
+		printf("Error: Incomplete write operation to file.\n");
+		SysCallExit(-1);
+	}
+	incrementPC();
 }
 
 
