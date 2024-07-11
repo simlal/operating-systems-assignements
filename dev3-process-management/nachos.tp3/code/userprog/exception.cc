@@ -330,9 +330,9 @@ void CopyFromUser(VirtualAddress userBufferSource, KernelAddress kernelBufferDes
 void SysCallLogWrite(VirtualAddress userBufferSource, int size) 
 {
 	// Temp kernel buffer and copy user to it
-	KernelAddress kernelBufferDestination = new char[size];
+	KernelAddress kernelBufferDestination = new char[size + 1];
     CopyFromUser(userBufferSource, kernelBufferDestination, size);
-    
+    kernelBufferDestination[size] = '\0'; // Null terminate
 	
 	// Write to log/stdout
 	for(int i = 0; i < size; i++)
