@@ -217,7 +217,7 @@ void ExceptionHandler(ExceptionType which)
 				{
 					userbuffer = machine->ReadRegister(4);
 					size = machine->ReadRegister(5);
-					handle = machine->ReadRegister(4);
+					handle = machine->ReadRegister(6);
 					SysCallRead(handle, userbuffer, size);
 					break;
 				}
@@ -385,10 +385,11 @@ void SysCallCreate(VirtualAddress fileName)
 	incrementPC();
 }
 
-#include "filesys.h"
-#include "machine.h"
-Machine* machine;
-FileSystem* fileSystem;
+// #include "filesys.h"
+// #include "machine.h"
+// Machine* machine;
+// FileSystem* fileSystem;
+
 // Retrieve the openFileId from the fileSystem
 OpenFileId SysCallOpen(VirtualAddress fileName)
 {
@@ -459,15 +460,32 @@ void CopyToUser(KernelAddress kernelBufferSource,VirtualAddress userBufferDestin
 		}
 		userBufferDestination++;
 	}
-
-	incrementPC();
 }
 
 
-void SysCallRead(OpenFileId fileSource,VirtualAddress userBufferDestination, int size){
-		
-	printf("Unimplemented system call...");
-	ASSERT(FALSE);
+void SysCallRead(OpenFileId fileSource,VirtualAddress userBufferDestination, int size)
+{
+	// Retrieve the fileSource
+	OpenFile* openFile = reinterpret_cast<OpenFile*>(fileSource);
+	if (openFile == NULL)
+	{
+		printf("Error: SysCallRead called with invalid fileSource.\n");
+		SysCallExit(-1);
+	}
+
+	// Copy user buffer to kernel buffer
+	KernelAddress kernelBuffer = new char[size];
+	int bytesRead = openFile->Read(kernelBuffer, size);
+	if (bytesRead < size)
+	{
+		printf("Error: Incomplete read operation from file.\n");
+		SysCallExit(-1);
+	}
+
+	// Copy kernel buffer to user buffer
+	CopyToUser(kernelBuffer, userBufferDestination, size);
+	delete[] kernelBuffer;
+	incrementPC();
 }
 
 SpaceId SysCallExec(VirtualAddress executableName,int initialPriority){
