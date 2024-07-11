@@ -213,6 +213,14 @@ void ExceptionHandler(ExceptionType which)
 					SysCallOpen(name);
 					break;
 				}
+				case SC_Read:
+				{
+					userbuffer = machine->ReadRegister(4);
+					size = machine->ReadRegister(5);
+					handle = machine->ReadRegister(4);
+					SysCallRead(handle, userbuffer, size);
+					break;
+				}
 
 				default:
 				{
@@ -377,10 +385,10 @@ void SysCallCreate(VirtualAddress fileName)
 	incrementPC();
 }
 
-// #include "filesys.h"
-// #include "machine.h"
-// Machine* machine;
-// FileSystem* fileSystem;
+#include "filesys.h"
+#include "machine.h"
+Machine* machine;
+FileSystem* fileSystem;
 // Retrieve the openFileId from the fileSystem
 OpenFileId SysCallOpen(VirtualAddress fileName)
 {
@@ -429,10 +437,30 @@ void SysCallWrite(OpenFileId fileDestination,VirtualAddress userBufferSource, in
 }
 
 
-void CopyToUser(KernelAddress kernelBufferSource,VirtualAddress userBufferDestination,int size){
-		
-	printf("Unimplemented function...");
-	ASSERT(FALSE);
+void CopyToUser(KernelAddress kernelBufferSource,VirtualAddress userBufferDestination,int size)
+{
+
+	if (size <= 0)
+	{
+		printf("Error: CopyFromUser called with size <= 0.\n");
+		SysCallExit(-1);
+	}
+	
+	Word32 word;
+	for (int i = 0; i < size; i++)
+	{
+		word.charVal[0] = kernelBufferSource[i];
+		bool success = machine->WriteMem(userBufferDestination, 1, word.intVal);
+		if (!success)
+		{
+			printf("Error writing to userBuffer.\n");
+			SysCallExit(-1);
+			return;
+		}
+		userBufferDestination++;
+	}
+
+	incrementPC();
 }
 
 
