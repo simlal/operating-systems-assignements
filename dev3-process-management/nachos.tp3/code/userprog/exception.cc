@@ -101,6 +101,9 @@ void SysCallRead(OpenFileId fileSource,VirtualAddress userBufferDestination, int
 //Verifiable avec la commande texec
 SpaceId SysCallExec(VirtualAddress executableName,int initialPriority);
 
+// Wrapper for StartProcess to allow passing char to StartProcess when called from Fork
+void StartProcessWrapper(int arg);
+
 //11- ALLEZ FAIRE UN TOUR DANS ADDRSPACE.
 //L'heure a sonne d'apprendre comment les programmes sont charges dans le mips simule.
 
@@ -213,6 +216,7 @@ void ExceptionHandler(ExceptionType which)
 					SysCallOpen(name);
 					break;
 				}
+				
 				case SC_Read:
 				{
 					userbuffer = machine->ReadRegister(4);
@@ -222,6 +226,13 @@ void ExceptionHandler(ExceptionType which)
 					break;
 				}
 
+				case SC_Exec: 
+				{
+					name = machine->ReadRegister(4);
+					int initialPriority = machine->ReadRegister(5);
+					SysCallExec(name, initialPriority);
+					break;
+				}
 				default:
 				{
 					printf("Unrecognized Syscall type: %d.\n", type);				
@@ -385,11 +396,6 @@ void SysCallCreate(VirtualAddress fileName)
 	incrementPC();
 }
 
-// #include "filesys.h"
-// #include "machine.h"
-// Machine* machine;
-// FileSystem* fileSystem;
-
 // Retrieve the openFileId from the fileSystem
 OpenFileId SysCallOpen(VirtualAddress fileName)
 {
@@ -488,10 +494,41 @@ void SysCallRead(OpenFileId fileSource,VirtualAddress userBufferDestination, int
 	incrementPC();
 }
 
-SpaceId SysCallExec(VirtualAddress executableName,int initialPriority){
+// #include "filesys.h"
+// FileSystem* fileSystem;
+// #include "addrspace.h"
+SpaceId SysCallExec(VirtualAddress executableName, int initialPriority) 
+{
+	// Retrieve the process name
+	KernelAddress exeNameKernelBuff = new char[MAX_FILENAME_LENGTH];
+    CopyFromUser(executableName, exeNameKernelBuff);
+
+    // Open the executable file
+    OpenFile* executableFile = fileSystem->Open(exeNameKernelBuff);
+    if (executableFile == NULL) {
+        printf("Error: Could not open executable %s.\n", exeNameKernelBuff);
+        delete[] exeNameKernelBuff;
+        SysCallExit(-1);
+    }
+	// Create a new process and address space
+    AddrSpace* newSpace = new AddrSpace(executableFile);
+    Thread* newProcess = new Thread(exeNameKernelBuff);
+    newProcess->space = newSpace;
+	newProcess->Fork(StartProcessWrapper, reinterpret_cast<int>(exeNameKernelBuff));
 	
-	printf("Unimplemented system call...");
-	ASSERT(FALSE);
+    // Free kernel buffer and return to user
+    delete[] exeNameKernelBuff;
+    incrementPC();
+	return reinterpret_cast<SpaceId>(newProcess);
+}
+
+void StartProcessWrapper(int arg)
+{	
+	char* exeName = reinterpret_cast<char*>(arg);
+	printf("Coming from StartProcessWrapper with process %d\n", arg);
+	printf("Starting process %s\n", exeName);
+
+	StartProcess(exeName);
 }
 
 void SysCallYield(){
