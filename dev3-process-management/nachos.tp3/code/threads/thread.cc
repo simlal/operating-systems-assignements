@@ -65,11 +65,15 @@ Thread::Thread(char* threadName)
 
 Thread::~Thread()
 {
-    DEBUG('t', "Deleting thread \"%s\"\n", name);
+    printf("Deleting thread \"%s\"\n", name);
 
     ASSERT(this != currentThread);
     if (stack != NULL)
-	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+    {
+	    printf("Freeing copyfromuser exe name: %s\n", name);
+        delete[] this->name;
+        DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
+    }
 }
 
 //----------------------------------------------------------------------

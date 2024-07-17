@@ -511,24 +511,12 @@ SpaceId SysCallExec(VirtualAddress executableName, int initialPriority)
         SysCallExit(-1);
     }
 	// Create a new process and address space
-    AddrSpace* newSpace = new AddrSpace(executableFile);
     Thread* newProcess = new Thread(exeNameKernelBuff);
-    newProcess->space = newSpace;
-	newProcess->Fork(StartProcessWrapper, reinterpret_cast<int>(exeNameKernelBuff));
+	// printf("Starting process with name=%s called with int=%d\n", exeNameKernelBuff, reinterpret_cast<int>(exeNameKernelBuff));
+	newProcess->Fork(reinterpret_cast<VoidFunctionPtr>(StartProcess), reinterpret_cast<int>(exeNameKernelBuff));
 	
-    // Free kernel buffer and return to user
-    delete[] exeNameKernelBuff;
     incrementPC();
-	return reinterpret_cast<SpaceId>(newProcess);
-}
-
-void StartProcessWrapper(int arg)
-{	
-	char* exeName = reinterpret_cast<char*>(arg);
-	printf("Coming from StartProcessWrapper with process %d\n", arg);
-	printf("Starting process %s\n", exeName);
-
-	StartProcess(exeName);
+	return reinterpret_cast<SpaceId>(newProcess);  // Delete of exeName managed by ~Thread
 }
 
 void SysCallYield(){
