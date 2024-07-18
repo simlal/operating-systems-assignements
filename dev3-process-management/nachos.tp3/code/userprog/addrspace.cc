@@ -20,11 +20,14 @@
 #include "addrspace.h"
 #include "noff.h"
 #include "bitmap.h"
+#include "syscall.h"
 
 static void SwapHeader (NoffHeader *);
+static int nextFreePhysicalPage = 0;
 
-
-
+#define VirtualAddress int
+extern void SysCallRead(OpenFileId fileSource, VirtualAddress userBufferDestination, int size, int position);
+extern void SysCallYield();
 
 //IFT320: C'est ici que ca se passe!
 //----------------------------------------------------------------------
@@ -41,7 +44,6 @@ static void SwapHeader (NoffHeader *);
 //
 //	"executable" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
-
 AddrSpace::AddrSpace(OpenFile *executable)
 {
     NoffHeader noffH;
@@ -63,64 +65,87 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
-
 	
-    // Fails if the program size is larger than physical memory.
+    int startPageIndex = AllocatePhysicalPages();
+	// printf("startPageIndex: %d\n", startPageIndex);
+	if (startPageIndex == -1)
+	{
+		printf("Not enough physical memory to allocate pages for the program\n");
+		ASSERT(FALSE);
+	}
+	
+	// Fails if the program size is larger than physical memory.
 	// Shouldn't matter once virtual memory is implemented.
 	ASSERT(numPages <= NumPhysPages);		
 
     DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
-	
+
 	
 	// Set up the page table to translate virtual addresses to physical addresses
     pageTable = new TranslationEntry[numPages];
     for (unsigned int i = 0; i < numPages; i++) {
-		// for now, virtual page # = phys page #
 		pageTable[i].virtualPage = i;	
-		
-		pageTable[i].physicalPage = i;
-		
-		
-		
+		pageTable[i].physicalPage = startPageIndex + i;
 		pageTable[i].valid = TRUE;
 		pageTable[i].use = FALSE;
 		pageTable[i].dirty = FALSE;
 		// if the code segment was entirely on a separate page, we could set its 
 		// pages to be read-only
-		pageTable[i].readOnly = FALSE;  
+		pageTable[i].readOnly = FALSE;
     }
+	// PrintPageTable();
 	
-	//IFT320: Peut-etre une bonne idee d'afficher le contenu de la table de pages ici pour
-	//fins de debug... just sayin'...
-	//PrintPageTable();
-	
-    
-	//Here, it is assumed, as with the page table setup, that the program will be
-	//loaded at physical address 0. This needs to change for multiple programs to 
-	//share memory.
-	
-	// zero out the entire address space in mips memory, to zero the unitialized data segment 
-	// and the stack segment
-   
-    bzero(machine->mainMemory, size);
-	
-	// then, copy in the code and data segments into mips memory
-   
-   
-	if (noffH.code.size > 0) {
+	// Assign the page table in the machine with the one we just created
+	if (currentThread->space == this)
+	{
+		printf("Setting page table for current thread\n");
+		this->RestoreState();
+	}
+	else 
+	{
+		this->RestoreState();
+	}
+	// zero out the page in user space memory
+	for (int i = 0; i < numPages; i++)
+	{
+		int vaddrStart = i * PageSize;
+		for (int j = 0; j < PageSize; j++)
+		{
+			bool success = machine->WriteMem(vaddrStart + j, 1, 0);
+			if (!success)
+			{
+				printf("Failed to write to memory at address %d\n", vaddrStart + j);
+				ASSERT(FALSE);
+			}
+		}
+	}
+
+	if (noffH.code.size > 0) 
+	{
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
 			noffH.code.virtualAddr, noffH.code.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.code.virtualAddr]),
-			noffH.code.size, noffH.code.inFileAddr);
+		// printf("Reading code seg from pos=%d at vaddr=%d of size %d\n", noffH.code.inFileAddr, noffH.code.virtualAddr, noffH.code.size);
+		SysCallRead(reinterpret_cast<OpenFileId>(executable), noffH.code.virtualAddr, noffH.code.size, noffH.code.inFileAddr);
     }
-    if (noffH.initData.size > 0) {
+	else
+	{
+		DEBUG('a', "No code segment to initialize\n");
+	}
+
+    if (noffH.initData.size > 0) 
+	{
         DEBUG('a', "Initializing data segment, at 0x%x, size %d\n", 
 			noffH.initData.virtualAddr, noffH.initData.size);
-        executable->ReadAt(&(machine->mainMemory[noffH.initData.virtualAddr]),
-			noffH.initData.size, noffH.initData.inFileAddr);
+		// printf("Reading data seg from pos=%d at vaddr=%d of size %d\n", noffH.initData.inFileAddr, noffH.initData.virtualAddr, noffH.initData.size);
+		SysCallRead(reinterpret_cast<OpenFileId>(executable), noffH.initData.virtualAddr, noffH.initData.size, noffH.initData.inFileAddr);
     }
-	
+	else
+	{
+		DEBUG('a', "No data segment to initialize\n");
+	}
 
+	// Make the process yield cpu so that other processes can run
+	SysCallYield();
 }
 
 void AddrSpace::PrintPageTable(){
@@ -218,4 +243,28 @@ static void SwapHeader (NoffHeader *noffH)
 	noffH->uninitData.size = WordToHost(noffH->uninitData.size);
 	noffH->uninitData.virtualAddr = WordToHost(noffH->uninitData.virtualAddr);
 	noffH->uninitData.inFileAddr = WordToHost(noffH->uninitData.inFileAddr);
+}
+
+
+//----------------------------------------------------------------------
+// AddrSpace::AllocatePhysicalPages
+//
+// Allocate a number of physical pages based on the number of pages
+// required by the userprocess. Returns the startpage index if enough
+// pages free are found otherwise -1
+//----------------------------------------------------------------------
+int AddrSpace::AllocatePhysicalPages()
+{
+	int startPage = nextFreePhysicalPage;
+
+	// Move 
+	if (startPage + numPages <= NumPhysPages)
+	{
+		nextFreePhysicalPage += numPages;
+		return startPage;
+	}
+	else
+	{
+		return -1;
+	}
 }

@@ -96,6 +96,7 @@ void CopyToUser(KernelAddress kernelBufferSource,VirtualAddress userBufferDestin
 //Verifiable avec la commande tread
 //Verifiable avec la commande treadwrite
 void SysCallRead(OpenFileId fileSource,VirtualAddress userBufferDestination, int size);
+void SysCallRead(OpenFileId fileSource, VirtualAddress userBufferDestination, int size, int position);
 
 //10-Exec, ouverture d'un executable et chargement d'un processus dans un nouvel espace d'adresses
 //Verifiable avec la commande texec
@@ -231,6 +232,12 @@ void ExceptionHandler(ExceptionType which)
 					name = machine->ReadRegister(4);
 					int initialPriority = machine->ReadRegister(5);
 					SysCallExec(name, initialPriority);
+					break;
+				}
+
+				case SC_Yield:
+				{
+					SysCallYield();
 					break;
 				}
 				default:
@@ -493,6 +500,30 @@ void SysCallRead(OpenFileId fileSource,VirtualAddress userBufferDestination, int
 	delete[] kernelBuffer;
 	incrementPC();
 }
+void SysCallRead(OpenFileId fileSource, VirtualAddress userBufferDestination, int size, int position)
+{
+	// Retrieve the fileSource
+	OpenFile* openFile = reinterpret_cast<OpenFile*>(fileSource);
+	if (openFile == NULL)
+	{
+		printf("Error: SysCallRead called with invalid fileSource.\n");
+		SysCallExit(-1);
+	}
+
+	// Copy user buffer to kernel buffer
+	KernelAddress kernelBuffer = new char[size];
+	int bytesRead = openFile->ReadAt(kernelBuffer, size, position);
+	if (bytesRead < size)
+	{
+		printf("Error: Incomplete read operation from file.\n");
+		SysCallExit(-1);
+	}
+
+	// Copy kernel buffer to user buffer
+	CopyToUser(kernelBuffer, userBufferDestination, size);
+	delete[] kernelBuffer;
+	incrementPC();
+}
 
 // #include "filesys.h"
 // FileSystem* fileSystem;
@@ -520,8 +551,8 @@ SpaceId SysCallExec(VirtualAddress executableName, int initialPriority)
 }
 
 void SysCallYield(){
-	printf("Unimplemented system call...");
-	ASSERT(FALSE);
+	currentThread->Yield();
+	incrementPC();
 }
 
 int SysCallJoin(SpaceId id){
@@ -529,5 +560,4 @@ int SysCallJoin(SpaceId id){
 	printf("Unimplemented system call...");
 	ASSERT(FALSE);
 }
-
 
