@@ -93,18 +93,10 @@ AddrSpace::AddrSpace(OpenFile *executable)
 		// pages to be read-only
 		pageTable[i].readOnly = FALSE;
     }
+	// Assign the page table to the machine that we just created
+	this->RestoreState();
 	// PrintPageTable();
 	
-	// Assign the page table in the machine with the one we just created
-	if (currentThread->space == this)
-	{
-		printf("Setting page table for current thread\n");
-		this->RestoreState();
-	}
-	else 
-	{
-		this->RestoreState();
-	}
 	// zero out the page in user space memory
 	for (int i = 0; i < numPages; i++)
 	{
@@ -120,6 +112,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
 		}
 	}
 
+	// Copy the code and data segments into memory
 	if (noffH.code.size > 0) 
 	{
         DEBUG('a', "Initializing code segment, at 0x%x, size %d\n", 
@@ -143,9 +136,6 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	{
 		DEBUG('a', "No data segment to initialize\n");
 	}
-
-	// Make the process yield cpu so that other processes can run
-	SysCallYield();
 }
 
 void AddrSpace::PrintPageTable(){
