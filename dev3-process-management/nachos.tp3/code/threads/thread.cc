@@ -70,7 +70,7 @@ Thread::~Thread()
     ASSERT(this != currentThread);
     if (stack != NULL)
     {
-	    printf("Freeing copyfromuser exe name: %s\n", name);
+	    // printf("Freeing copyfromuser exe name: %s\n", name);
         delete[] this->name;
         DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
     }

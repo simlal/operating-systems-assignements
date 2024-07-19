@@ -118,6 +118,8 @@ void SysCallYield();
 //du processus enfant pour lequel il demande Join.
 //Verifiable avec les commandes tminijoin et tjoin
 int SysCallJoin(SpaceId id);
+bool ENDED = false;
+int EXIT_CODE = 0;
 
 //14-C'est le moment d'aller faire les algorithmes de planification!
 //Allez faire un tour dans Thread, Scheduler et Main.
@@ -240,6 +242,13 @@ void ExceptionHandler(ExceptionType which)
 					SysCallYield();
 					break;
 				}
+
+				case SC_Join:
+				{	
+					SpaceId id = machine->ReadRegister(4);
+					SysCallJoin(id);
+					break;
+				}
 				default:
 				{
 					printf("Unrecognized Syscall type: %d.\n", type);				
@@ -314,6 +323,8 @@ void incrementPC()
 void SysCallExit(int code){
 
 	printf("Exiting process with exit code: %d\n", code);
+	ENDED = true;
+	EXIT_CODE = code;
 	currentThread->Finish();
 }
 
@@ -547,6 +558,8 @@ SpaceId SysCallExec(VirtualAddress executableName, int initialPriority)
 	newProcess->Fork(reinterpret_cast<VoidFunctionPtr>(StartProcess), reinterpret_cast<int>(exeNameKernelBuff));
 	
     incrementPC();
+	// Return the process id as a SpaceId (int)
+	machine->WriteRegister(2, reinterpret_cast<SpaceId>(newProcess));
 	return reinterpret_cast<SpaceId>(newProcess);  // Delete of exeName managed by ~Thread
 }
 
@@ -555,9 +568,24 @@ void SysCallYield(){
 	incrementPC();
 }
 
-int SysCallJoin(SpaceId id){
+int SysCallJoin(SpaceId id)
+{
+	Thread* childProcess = reinterpret_cast<Thread*>(id);
+	if (childProcess == NULL)
+	{
+		printf("Error: SysCallJoin called with invalid process id.\n");
+		SysCallExit(-1);
+	}
+
+	// Wait for the child process from join call to finish
+	while (!ENDED)
+	{
+		currentThread->Yield();
+	}
 	
-	printf("Unimplemented system call...");
-	ASSERT(FALSE);
+	// Return the exit code of the child process
+	machine->WriteRegister(2, EXIT_CODE);
+	incrementPC();
+	return EXIT_CODE;
 }
 
