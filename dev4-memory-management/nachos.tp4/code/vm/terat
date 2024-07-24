@@ -1,0 +1,6 @@
+#!/bin/csh
+
+echo ------------Super Prime Test-----------
+
+nachos -x ../tp4test/SuperPrimeTest -d l 
+

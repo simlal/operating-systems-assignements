@@ -1,0 +1,6 @@
+#!/bin/csh
+
+echo ------------Join Test simple-----------
+
+nachos -x ../tp4test/MiniJoinTest -d l
+
