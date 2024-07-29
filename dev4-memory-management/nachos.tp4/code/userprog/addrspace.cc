@@ -81,11 +81,12 @@ AddrSpace::AddrSpace(OpenFile *executable)
  
 		//IFT320 trouve un cadre libre, le nettoie et l'assigne.
 		
-		int cadre = freeFrame->Find(); 		
-		bzero(&(machine->mainMemory[cadre*PageSize]), PageSize); 		
-		pageTable[i].physicalPage = cadre;		
+		// Do not allocate a frame for now
+    // int cadre = freeFrame->Find();
+		// bzero(&(machine->mainMemory[cadre*PageSize]), PageSize); 		
+		pageTable[i].physicalPage = -1;		
 		
-		pageTable[i].valid = TRUE;	//Traduction valide ou non
+		pageTable[i].valid = FALSE;	//Traduction valide ou non
 		
 		pageTable[i].use = FALSE;	//Utilisee dernierement (read ou write)
 		pageTable[i].dirty = FALSE;	//Modifiee dernierement (write)
