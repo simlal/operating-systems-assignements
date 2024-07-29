@@ -102,7 +102,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	
 	
 	//IFT320: chargement du programme au complet.	
-	SysCallRead(executable,noffH.code.virtualAddr,noffH.code.size,noffH.code.inFileAddr);
+	// SysCallRead(executable,noffH.code.virtualAddr,noffH.code.size,noffH.code.inFileAddr);
 	
 	if(noffH.initData.size>0){
 		SysCallRead(executable,noffH.initData.virtualAddr,noffH.initData.size,noffH.initData.inFileAddr);		
