@@ -262,7 +262,7 @@ bool AddrSpace::LoadFromExecutable(int pageNumber)
     else
     {
         int bytesRead = executable->ReadAt(&(machine->mainMemory[frame * PageSize]), PageSize, noffH.code.inFileAddr + offset);
-        printf("Read %d bytes from executable\n", bytesRead);
+        // printf("Read %d bytes from executable\n", bytesRead);
     }
     // Update the page table entry
     pageTable[pageNumber].virtualPage = pageNumber;

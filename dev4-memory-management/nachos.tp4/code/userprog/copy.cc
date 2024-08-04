@@ -6,17 +6,24 @@ void CopyFromUser(char * dest, char * source, int longueur)
 	int i = 0;
 	int tmp;
 	int code;
-	
 	if (longueur >= 0)
 		for (i=0 ; i < longueur ; i++) {		
-				code = machine->ReadMem((int)source+i, 1, &tmp);
+				while (!machine->ReadMem((int)source+i, 1, &tmp))
+				{
+					// printf("Raising PageFault inside read op because cannot translate vaddr\n");
+					machine->RaiseException(PageFaultException, (int)source+i);
+				}
 				
 				dest[i] = (char)tmp;				
 		}
 	else
 	{	
 		do {
-			code = machine->ReadMem((int) source+i, 1, &tmp);
+			while (!machine->ReadMem((int) source+i, 1, &tmp))
+			{
+				// printf("Raising PageFault inside read op because cannot translate vaddr\n");
+				machine->RaiseException(PageFaultException, (int)source+i);
+			}
 			
 			dest[i] = (char)tmp;			
 			i++;
@@ -28,7 +35,11 @@ void CopyToUser(char * dest, char * source, int longueur)
 {
 	int code;
 	for (int i=0; i < longueur; i++){
-			code = machine->WriteMem((int)dest+i, 1, (int)source[i]);
+			while (!machine->WriteMem((int)dest+i, 1, (int)source[i]))
+			{
+				// printf("Raising PageFault inside write op because cannot translate vaddr\n");
+				machine->RaiseException(PageFaultException, (int)source+i);
+			}
 			
 		}
 	
