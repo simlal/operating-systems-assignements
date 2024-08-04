@@ -36,6 +36,7 @@ class AddrSpace {
     void RestoreState();		// info on a context switch 
 	void PrintPageTable();
 	void PrintPage(int,int);
+  bool LoadFromExecutable(int badVaddr);
 	
 	
   private:
@@ -43,6 +44,9 @@ class AddrSpace {
 					// for now!
     int numPages;		// Number of pages in the virtual 
 					// address space
+    NoffHeader noffH;  // file header tied to executable passed 
+          //to addrspace constructor
+    OpenFile* executable;
 	
 };
 

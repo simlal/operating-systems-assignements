@@ -50,8 +50,8 @@ AddrSpace::AddrSpace(OpenFile *executable)
     
     unsigned int size;
     
-	NoffHeader noffH;
-	
+	// NoffHeader noffH;
+	this->executable = executable;
 		
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && (WordToHost(noffH.noffMagic) == NOFFMAGIC))
@@ -105,9 +105,8 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	// SysCallRead(executable,noffH.code.virtualAddr,noffH.code.size,noffH.code.inFileAddr);
 	
 	if(noffH.initData.size>0){
-		SysCallRead(executable,noffH.initData.virtualAddr,noffH.initData.size,noffH.initData.inFileAddr);		
+		// SysCallRead(executable,noffH.initData.virtualAddr,noffH.initData.size,noffH.initData.inFileAddr);		
 	}
-	
 	
 }
 
@@ -128,7 +127,10 @@ AddrSpace::~AddrSpace()
 	DEBUG('e',"Liberation des cadres...\n");
 	for (i = 0; i < numPages; i++)
 		
-		freeFrame->Clear(pageTable[i].physicalPage); //libere cadre 
+		if (pageTable[i].physicalPage != -1)
+    {
+    freeFrame->Clear(pageTable[i].physicalPage); //libere cadre 
+    }
 
 	delete pageTable;
 }
@@ -223,11 +225,52 @@ void AddrSpace::SaveState()
 //
 //      For now, tell the machine where to find the page table.
 //----------------------------------------------------------------------
-
 void AddrSpace::RestoreState() 
 {
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
+}
+
+//----------------------------------------------------------------------
+// Load an executable to correct the page fault
+//----------------------------------------------------------------------
+bool AddrSpace::LoadFromExecutable(int pageNumber)
+{
+    if (pageTable[pageNumber].valid)
+    {
+        printf("Page %d is already loaded\n", pageNumber);
+        return TRUE;
+    }
+    
+    // Find a free frame
+    int frame = freeFrame->Find();
+    if (frame == -1)
+    {
+        printf("No more frames available, cannot fix PageFault\n");
+        // Handle the case where no frames are available (e.g., swap out a page)
+        return FALSE;
+    }
+    
+    // Only load the executable's portion based on offset/code
+    int offset = pageNumber * PageSize;
+    int exeSize = noffH.code.size + noffH.initData.size;
+    if (offset >= exeSize)
+    {
+        printf("Page %d is not part of the executable\n", pageNumber);
+        bzero(&(machine->mainMemory[frame * PageSize]), PageSize);
+    }
+    else
+    {
+        int bytesRead = executable->ReadAt(&(machine->mainMemory[frame * PageSize]), PageSize, noffH.code.inFileAddr + offset);
+        printf("Read %d bytes from executable\n", bytesRead);
+    }
+    // Update the page table entry
+    pageTable[pageNumber].virtualPage = pageNumber;
+    pageTable[pageNumber].physicalPage = frame;
+    pageTable[pageNumber].valid = TRUE;
+
+    printf("Page %d loaded into frame %d\n", pageNumber, frame);
+    return TRUE;
 }
 
 //----------------------------------------------------------------------

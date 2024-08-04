@@ -68,7 +68,8 @@ int SysCallWrite(OpenFile*, int,int,int);
 void ExceptionHandler(ExceptionType which)
 {
     int type = machine->ReadRegister(2);
-
+	int badVaddr;
+	int pageNumber;
     
     switch (which)
     {	    
@@ -201,14 +202,23 @@ void ExceptionHandler(ExceptionType which)
 	    
 		break;
     }	
-    
     case PageFaultException:
-	
+		{
+			// Track page fault for debugging
 			currentThread->stats->incPageFaults();			
-		    printf("Faute de pages : \n");
-		    currentThread->Finish();
-	        ASSERT(FALSE);		
-		    break;
+			printf("Faute de pages : %d\n", currentThread->stats->getPageFaults());
+			
+			// Load the missing page from the executable
+			badVaddr = machine->ReadRegister(BadVAddrReg);
+			pageNumber = badVaddr / PageSize;
+			printf("Faulting address causing page fault: 0x%x\n", badVaddr);
+			printf("Page number causing page fault: %d\n", pageNumber);
+			if (!currentThread->space->LoadFromExecutable(pageNumber)) {
+				printf("Error loading page %d\n", pageNumber);
+				currentThread->Finish();
+			}
+			break;
+		}
 			
 	    case ReadOnlyException:
 		    printf("Tentative d'ecriture dans une page non modifiable. \n");
@@ -290,8 +300,6 @@ int SysCallWrite(OpenFile* dest, int vaddr,int size,int offset){
 	return code;
 
 }
-
-
 
 
 
