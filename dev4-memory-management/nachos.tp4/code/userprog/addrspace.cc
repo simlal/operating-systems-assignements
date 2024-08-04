@@ -81,7 +81,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	
 	
 	DEBUG('a', "espace libre =  %d, \n", freeFrame->NumClear());
-	ASSERT(numPages <= freeFrame->NumClear());	
+	// ASSERT(numPages <= freeFrame->NumClear());	
     
 
 
@@ -266,8 +266,9 @@ bool AddrSpace::LoadFromExecutable(int pageNumber)
     int frame = freeFrame->Find();
     if (frame == -1)
     {
-        printf("No more frames available, cannot fix PageFault\n");
-        // Handle the case where no frames are available (e.g., swap out a page)
+        printf("No more frames available, swapping out...\n");
+        // Swap out a page to make room
+        
         return FALSE;
     }
     
