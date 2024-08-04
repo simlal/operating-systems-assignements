@@ -35,6 +35,9 @@ if [[ $1 ]]; then
     elif [[ $1 == thread.* ]]; then
         SOURCE_DIR_DEB=$THREADS_DIR_DEB
         TARGET_DIR_WIN=$THREADS_DIR_WIN
+    elif [[ $1 == copy.cc ]]; then
+        SOURCE_DIR_DEB=$USERPROG_DIR_DEB
+        TARGET_DIR_WIN=$USERPROG_DIR_WIN
     else
         echo "Invalid file name. Exiting..."
         exit 1
@@ -48,9 +51,9 @@ if [[ $1 ]]; then
     echo "File copied successfully."
     exit 0
 else
-    echo "Copying 'exception.cc', 'addrspace.cc' and 'addrspace.h' from Debian to win machine..."
+    echo "Copying 'exception.cc', 'addrspace.cc', 'addrspace.h and copy.cc' from Debian to win machine..."
     cd "$USERPROG_DIR_DEB" || exit
-    for file in exception.cc addrspace.cc addrspace.h; do
+    for file in exception.cc addrspace.cc addrspace.h copy.cc; do
         sshpass -v -p "$WIN_ACCOUNT_PASSWORD" scp $file "$WIN_USERNAME"@"$WIN_MACHINE_IP":"$USERPROG_DIR_WIN"/$file
     done
     echo "Files copied successfully."
