@@ -49,9 +49,22 @@ AddrSpace::AddrSpace(OpenFile *executable)
 {
     
     unsigned int size;
+    // NoffHeader noffH;
+    this->executable = executable;
     
-	// NoffHeader noffH;
-	this->executable = executable;
+    // Create a swap file for this executable and keep it open
+    char* swapFileName = GenerateSwapFilename((int) executable);
+    swapFile = fopen(swapFileName, "w+");
+    if (swapFile == NULL)
+    {
+        printf("Could not create swap file for executable\n");
+        delete[] swapFileName;
+        currentThread->Finish();
+    }
+    printf("Opened swapfile: %s for executable\n", swapFileName);
+    delete[] swapFileName;
+
+
 		
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && (WordToHost(noffH.noffMagic) == NOFFMAGIC))
@@ -107,6 +120,8 @@ AddrSpace::AddrSpace(OpenFile *executable)
 	if(noffH.initData.size>0){
 		// SysCallRead(executable,noffH.initData.virtualAddr,noffH.initData.size,noffH.initData.inFileAddr);		
 	}
+
+  
 	
 }
 
@@ -133,6 +148,11 @@ AddrSpace::~AddrSpace()
     }
 
 	delete pageTable;
+
+  // Close the swap file
+  fclose(swapFile);
+  //TODO : delete swap file
+
 }
 
 void AddrSpace::PrintPageTable(){
@@ -271,6 +291,19 @@ bool AddrSpace::LoadFromExecutable(int pageNumber)
 
     printf("Page %d loaded into frame %d\n", pageNumber, frame);
     return TRUE;
+}
+
+//----------------------------------------------------------------------
+// GenerateSwapFilename
+//----------------------------------------------------------------------
+char* AddrSpace::GenerateSwapFilename(int executableId)
+{
+  int lenSwapFileName;
+  char* swapFileName = new char[1000];
+  lenSwapFileName = sprintf(swapFileName, "%s_exe-%d.swp", currentThread->getName(), executableId);
+
+  printf("SwapFileName: %s (len=%d)\n", swapFileName, lenSwapFileName);
+  return swapFileName;
 }
 
 //----------------------------------------------------------------------

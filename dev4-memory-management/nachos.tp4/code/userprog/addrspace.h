@@ -37,6 +37,7 @@ class AddrSpace {
 	void PrintPageTable();
 	void PrintPage(int,int);
   bool LoadFromExecutable(int badVaddr);
+  char* GenerateSwapFilename(int exeId);
 	
 	
   private:
@@ -47,6 +48,7 @@ class AddrSpace {
     NoffHeader noffH;  // file header tied to executable passed 
           //to addrspace constructor
     OpenFile* executable;
+    FILE* swapFile;
 	
 };
 
