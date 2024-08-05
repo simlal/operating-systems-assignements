@@ -206,13 +206,11 @@ void ExceptionHandler(ExceptionType which)
 		{
 			// Track page fault for debugging
 			currentThread->stats->incPageFaults();			
-			// printf("Faute de pages : %d\n", currentThread->stats->getPageFaults());
 			
 			// Load the missing page from the executable
 			badVaddr = machine->ReadRegister(BadVAddrReg);
 			pageNumber = badVaddr / PageSize;
-			// printf("Faulting address causing page fault: 0x%x\n", badVaddr);
-			// printf("Page number causing page fault: %d\n", pageNumber);
+			
 			if (!currentThread->space->LoadFromExecutable(pageNumber)) {
 				printf("Error loading page %d\n", pageNumber);
 				currentThread->Finish();

@@ -19,11 +19,11 @@
 #include "system.h"
 #include "addrspace.h"
 
-
 #ifdef USER_PROGRAM
 #include "copy.h"
 extern int SysCallRead(OpenFile*, int,int,int);
 extern int SysCallWrite(OpenFile*, int,int,int);
+#define IN_SWAP_FILE -2
 #endif
 
 static void SwapHeader (NoffHeader *);
@@ -89,21 +89,12 @@ AddrSpace::AddrSpace(OpenFile *executable)
 
     pageTable = new TranslationEntry[numPages];
     for (int i = 0; i < numPages; i++) {
-	
-		pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
- 
-		//IFT320 trouve un cadre libre, le nettoie et l'assigne.
-		
-		// Do not allocate a frame for now
-    // int cadre = freeFrame->Find();
-		// bzero(&(machine->mainMemory[cadre*PageSize]), PageSize); 		
-		pageTable[i].physicalPage = -1;		
-		
-		pageTable[i].valid = FALSE;	//Traduction valide ou non
-		
-		pageTable[i].use = FALSE;	//Utilisee dernierement (read ou write)
-		pageTable[i].dirty = FALSE;	//Modifiee dernierement (write)
-		pageTable[i].readOnly = FALSE;  //Interdite en ecriture ou non
+      pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+      pageTable[i].physicalPage = -1;		
+      pageTable[i].valid = FALSE;	//Traduction valide ou non
+      pageTable[i].use = FALSE;	//Utilisee dernierement (read ou write)
+      pageTable[i].dirty = FALSE;	//Modifiee dernierement (write)
+      pageTable[i].readOnly = FALSE;  //Interdite en ecriture ou non
     }
 
 	//IFT320: on assume que le AddrSpace est construit par le Thread associe.
@@ -142,7 +133,7 @@ AddrSpace::~AddrSpace()
 	DEBUG('e',"Liberation des cadres...\n");
 	for (i = 0; i < numPages; i++)
 		
-		if (pageTable[i].physicalPage != -1)
+		if (pageTable[i].physicalPage != -1 && pageTable[i].physicalPage != IN_SWAP_FILE)
     {
     freeFrame->Clear(pageTable[i].physicalPage); //libere cadre 
     }
@@ -152,6 +143,7 @@ AddrSpace::~AddrSpace()
   // Close the swap file
   fclose(swapFile);
   //TODO : delete swap file
+  
 
 }
 
@@ -179,6 +171,7 @@ void AddrSpace::PrintPage(int page,int swapPos){
 		for (int i=0;i<128;i++){
 			DEBUG('a',"%2x ",content[i]);
 		}
+    DEBUG('a',"\n");
 	}
 	else{
 		DEBUG('a',"Invalid, not in memory.\n");
@@ -188,6 +181,15 @@ void AddrSpace::PrintPage(int page,int swapPos){
 		DEBUG('l',"\nPage in swap, occupies block %d:\n",swapPos);
 		
 		//IFT320: ajoutez ici l'affichage du contenu du swap correspondant a la page
+
+    // Find the swap file offset
+    fseek(swapFile, swapPos, SEEK_SET);
+    fread(content, 128, 1, swapFile);
+    for (int i=0;i<128;i++){
+      DEBUG('l',"%2x ",content[i]);
+    }    
+    DEBUG('a',"\n");
+
 	}
 	else{
 		DEBUG('l',"\nPage Not in swap. \n",swapPos);	
@@ -256,46 +258,62 @@ void AddrSpace::RestoreState()
 //----------------------------------------------------------------------
 bool AddrSpace::LoadFromExecutable(int pageNumber)
 {
+    loadedPages.push(pageNumber);    // For victim choice in SwapOut
+    
+    // Check if the page is already loaded
     if (pageTable[pageNumber].valid)
     {
         printf("Page %d is already loaded\n", pageNumber);
         return TRUE;
     }
-    
-    // Find a free frame
+
+    // Find a free frame, use swaping if necessary
     int frame = freeFrame->Find();
     if (frame == -1)
     {
-        printf("No more frames available, swapping out...\n");
+        // printf("No more frames available, swapping out...\n");
         // Swap out a page to make room
-        
-        return FALSE;
+        frame = SwapOut();
+        if (frame == -1)
+        {
+          printf("Failed to find a free frame after SwapOut\n");
+          return FALSE;
+        }
     }
-    
-    // Only load the executable's portion based on offset/code
-    int offset = pageNumber * PageSize;
-    int exeSize = noffH.code.size + noffH.initData.size;
-    if (offset >= exeSize)
+    // Use swap file or load from executable
+    if (pageTable[pageNumber].physicalPage == IN_SWAP_FILE)
     {
-        printf("Page %d is not part of the executable\n", pageNumber);
-        bzero(&(machine->mainMemory[frame * PageSize]), PageSize);
+        SwapIn(pageNumber, frame);
     }
     else
     {
-        int bytesRead = executable->ReadAt(&(machine->mainMemory[frame * PageSize]), PageSize, noffH.code.inFileAddr + offset);
-        // printf("Read %d bytes from executable\n", bytesRead);
-    }
-    // Update the page table entry
-    pageTable[pageNumber].virtualPage = pageNumber;
-    pageTable[pageNumber].physicalPage = frame;
-    pageTable[pageNumber].valid = TRUE;
+        // Only load the executable's portion based on offset/code
+        int offset = pageNumber * PageSize;
+        int exeSize = noffH.code.size + noffH.initData.size;
+        if (offset >= exeSize)
+        {
+            printf("Page %d is not part of the executable. \n", pageNumber);
+            bzero(&(machine->mainMemory[frame * PageSize]), PageSize);
+        }
+        else
+        {
+            int bytesRead = executable->ReadAt(&(machine->mainMemory[frame * PageSize]), PageSize, noffH.code.inFileAddr + offset);
+            // printf("Read %d bytes from executable\n", bytesRead);
+        }
+        // Update the page table entry
+        pageTable[pageNumber].virtualPage = pageNumber;
+        pageTable[pageNumber].physicalPage = frame;
+        pageTable[pageNumber].valid = TRUE;
 
+    }
     printf("Page %d loaded into frame %d\n", pageNumber, frame);
     return TRUE;
-}
+  }
 
 //----------------------------------------------------------------------
 // GenerateSwapFilename
+// Use a combination of threadname_OpenFileId.swp to generate the swap
+// file name
 //----------------------------------------------------------------------
 char* AddrSpace::GenerateSwapFilename(int executableId)
 {
@@ -305,6 +323,89 @@ char* AddrSpace::GenerateSwapFilename(int executableId)
 
   printf("SwapFileName: %s (len=%d)\n", swapFileName, lenSwapFileName);
   return swapFileName;
+}
+
+//----------------------------------------------------------------------
+// SwapOut
+// Choose a victim to invalidate from page table and
+// copy its content to swapfile
+//----------------------------------------------------------------------
+int AddrSpace::SwapOut()
+{
+    if (loadedPages.empty())
+    {
+      printf("Loaded pages queue is empty\n");
+      return -1;
+    }
+
+    // Find the first valid page to swap out
+    int frame;
+    bool found = FALSE;
+    int pageIndex;
+    
+    for (int i = 0; i < loadedPages.size(); i++)
+    {
+      pageIndex = loadedPages.front();
+      if (pageTable[pageIndex].valid)
+      {
+        found = TRUE;
+        break;
+      }
+      loadedPages.pop();
+      loadedPages.push(pageIndex);
+    }
+    if (!found)
+    {
+      printf("No valid page found in the queue\n");
+      return -1;
+    }
+    
+    // Save the frame and update the queue
+    // printf("Swapping out page %d\n", pageIndex);
+    // PrintPage(pageIndex, -1);
+    loadedPages.pop();
+    frame = pageTable[pageIndex].physicalPage;
+    
+    // Make full copy of exe into swapfile
+    int swapFileOffset = pageIndex * PageSize;
+    fseek(swapFile, swapFileOffset, SEEK_SET);
+    fwrite(&(machine->mainMemory[frame * PageSize]), PageSize, 1, swapFile);
+
+    // PrintPage(pageIndex, swapFileOffset);
+    
+    // Invalidate victim and return the free frame
+    pageTable[pageIndex].valid = FALSE;
+    pageTable[pageIndex].physicalPage = IN_SWAP_FILE;
+    currentThread->stats->incSwapOuts();
+    return frame;
+}
+//----------------------------------------------------------------------
+// SwapIn
+// Load the page from swapfile to the free frame
+//----------------------------------------------------------------------
+void AddrSpace::SwapIn(int pageNumber, int frame)
+{
+    // Find the swap file offset
+    int swapFileOffset = pageNumber * PageSize;
+    fseek(swapFile, swapFileOffset, SEEK_SET);
+    fread(&(machine->mainMemory[frame * PageSize]), PageSize, 1, swapFile);
+    // PrintPage(pageNumber, swapFileOffset);
+    
+    // Update the page table entry
+    pageTable[pageNumber].physicalPage = frame;
+    pageTable[pageNumber].valid = TRUE;
+    
+    // Remove the page from swap file
+    char* zeroes = new char[PageSize];
+    bzero(zeroes, PageSize);
+    fseek(swapFile, swapFileOffset, SEEK_SET);
+    fwrite(zeroes, PageSize, 1, swapFile);
+
+    // Clean up and update stats
+    // delete[] zeroes;
+    currentThread->stats->incSwapIns();
+
+    // printf("Swapped in page %d to frame %d\n", pageNumber, frame);
 }
 
 //----------------------------------------------------------------------

@@ -16,6 +16,7 @@
 #include "copyright.h"
 #include "filesys.h"
 #include "noff.h"
+#include <queue>
 
 
 #define UserStackSize		1024 	// increase this as necessary!
@@ -38,6 +39,9 @@ class AddrSpace {
 	void PrintPage(int,int);
   bool LoadFromExecutable(int badVaddr);
   char* GenerateSwapFilename(int exeId);
+  int SwapOut();
+  void SwapIn(int pageNumber, int frame);
+
 	
 	
   private:
@@ -49,6 +53,7 @@ class AddrSpace {
           //to addrspace constructor
     OpenFile* executable;
     FILE* swapFile;
+    std::queue<int> loadedPages;
 	
 };
 
