@@ -1,5 +1,5 @@
 # Operating Systems Course Assignements
-Assignments for an operating systems class IFT-320 at UdeS
+Assignments for an operating systems class at UdeS
 
 ## Assignements
 ### Assignment 1 - RS232 Driver
